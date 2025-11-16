@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, Product, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialsBlock, SocialPlatform, SocialLink, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage } from '../types';
-import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon } from './Icons';
+import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon, Share2Icon } from './Icons';
 import * as geminiService from '../services/geminiService';
+import { compressToBase64 } from '../utils/compression';
 
 const URL_REGEX = new RegExp(
   '^(https?:\\/\\/)?' + // protocol
@@ -915,6 +916,9 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     const [importData, setImportData] = useState<any | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [shareUrl, setShareUrl] = useState('');
+    const [isLinkCopied, setIsLinkCopied] = useState(false);
 
     useEffect(() => {
         if (notification) {
@@ -1035,6 +1039,26 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         setImportData(null);
     };
 
+    const handleShare = () => {
+        const pageData = { profile, blocks, chatbotProfile, chatbotEnabled, seoConfig };
+        const jsonString = JSON.stringify(pageData);
+        const compressedData = compressToBase64(jsonString);
+        const url = `${window.location.origin}${window.location.pathname}?data=${compressedData}`;
+        setShareUrl(url);
+        setIsLinkCopied(false);
+        setIsShareModalOpen(true);
+    };
+    
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            setIsLinkCopied(true);
+            setTimeout(() => {
+                setIsLinkCopied(false);
+                setIsShareModalOpen(false);
+            }, 2000);
+        });
+    };
+
   return (
     <div className="w-full bg-gray-800 h-screen flex flex-col">
        <header className="p-4 md:p-6 border-b border-gray-700">
@@ -1051,6 +1075,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                         accept="application/json"
                         className="hidden"
                     />
+                    <button onClick={handleShare} className="flex items-center gap-2 p-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors" title="Поделиться">
+                        <Share2Icon className="w-5 h-5"/>
+                        <span className="hidden sm:inline">Поделиться</span>
+                    </button>
                     <button onClick={handleImportClick} className="flex items-center gap-2 p-2 text-sm text-gray-300 bg-gray-700/50 hover:bg-gray-700 rounded-md transition-colors" title="Импортировать данные">
                         <UploadCloudIcon className="w-5 h-5"/>
                         <span className="hidden sm:inline">Импорт</span>
@@ -1184,6 +1212,36 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       {notification && (
         <div className="fixed top-20 right-6 bg-gray-700 text-white py-2 px-4 rounded-lg shadow-lg z-50 border border-gray-600 animate-fade-in-out">
             {notification}
+        </div>
+      )}
+
+      {isShareModalOpen && (
+        <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+        >
+            <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-full max-w-lg">
+                <h3 className="text-lg font-bold text-white mb-2">Поделиться страницей</h3>
+                <p className="text-gray-400 mb-4 text-sm">Скопируйте и отправьте эту ссылку, чтобы поделиться публичной версией вашей страницы.</p>
+                <div className="flex items-center bg-gray-900 rounded-md p-1 border border-gray-600">
+                    <input type="text" readOnly value={shareUrl} className="flex-1 bg-transparent px-3 py-1 text-gray-300 text-sm focus:outline-none"/>
+                    <button 
+                        onClick={handleCopyLink} 
+                        className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${isLinkCopied ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                    >
+                        {isLinkCopied ? 'Скопировано!' : 'Копировать'}
+                    </button>
+                </div>
+                 <div className="flex justify-end mt-6">
+                    <button 
+                        onClick={() => setIsShareModalOpen(false)} 
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-semibold rounded-md transition-colors text-sm"
+                    >
+                        Закрыть
+                    </button>
+                </div>
+            </div>
         </div>
       )}
       

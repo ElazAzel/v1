@@ -3,6 +3,7 @@ import { Block, BlockType, LinkBlock, ShopBlock, ChatbotProfile, UserRole, Searc
 import { EditorPanel } from './components/EditorPanel';
 import { PreviewPanel } from './components/PreviewPanel';
 import { EyeIcon, PencilIcon } from './components/Icons';
+import { decompressFromBase64 } from './utils/compression';
 
 const initialBlocks: Block[] = [
   {
@@ -83,6 +84,32 @@ const App: React.FC = () => {
     description: 'Добро пожаловать на мою личную страницу! Здесь вы найдете все мои проекты, ссылки и продукты.',
     keywords: ['личная страница', 'портфолио', 'проекты', 'elazart'],
   });
+  const [isPublicView, setIsPublicView] = useState(false);
+
+  useState(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const dataParam = urlParams.get('data');
+
+      if (dataParam) {
+        const jsonString = decompressFromBase64(dataParam);
+        if (jsonString) {
+          const pageData: PageData = JSON.parse(jsonString);
+          if (pageData.profile && pageData.blocks && pageData.seoConfig) {
+            setProfile(pageData.profile);
+            setBlocks(pageData.blocks);
+            setChatbotProfile(pageData.chatbotProfile);
+            setChatbotEnabled(pageData.chatbotEnabled);
+            setSeoConfig(pageData.seoConfig);
+            setIsPublicView(true);
+            document.title = pageData.seoConfig.title || 'Bio Page';
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load page data from URL:", error);
+    }
+  });
 
 
   const addBlock = (type: BlockType) => {
@@ -160,6 +187,22 @@ const App: React.FC = () => {
     }
     return false;
   };
+
+  if (isPublicView) {
+    return (
+        <div className="min-h-screen bg-gray-900 text-white flex">
+            <div className="w-full">
+                <PreviewPanel 
+                    profile={profile} 
+                    blocks={blocks} 
+                    chatbotProfile={chatbotProfile} 
+                    chatbotEnabled={chatbotEnabled}
+                    onLinkClick={handleLinkClick}
+                />
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col md:flex-row">
