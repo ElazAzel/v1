@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialPlatform, ButtonBlock } from './types';
 import { EditorPanel } from './components/EditorPanel';
@@ -53,6 +52,14 @@ const initialBlocks: Block[] = [
     ],
   },
 ];
+
+interface PageData {
+  profile: Profile;
+  blocks: Block[];
+  chatbotProfile: ChatbotProfile | null;
+  chatbotEnabled: boolean;
+  seoConfig: SeoConfig;
+}
 
 const App: React.FC = () => {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
@@ -142,6 +149,18 @@ const App: React.FC = () => {
     }));
   };
 
+  const importPageData = (data: PageData): boolean => {
+    if (data.profile && data.blocks && data.seoConfig) {
+      setProfile(data.profile);
+      setBlocks(data.blocks);
+      setChatbotProfile(data.chatbotProfile);
+      setChatbotEnabled(data.chatbotEnabled);
+      setSeoConfig(data.seoConfig);
+      return true;
+    }
+    return false;
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col md:flex-row">
       <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800/70 backdrop-blur-sm p-2 rounded-full flex gap-2 border border-gray-600">
@@ -185,6 +204,7 @@ const App: React.FC = () => {
           setUserRole={setUserRole}
           seoConfig={seoConfig}
           setSeoConfig={setSeoConfig}
+          importPageData={importPageData}
         />
       </div>
     </div>

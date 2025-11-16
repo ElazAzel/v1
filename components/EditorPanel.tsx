@@ -1,7 +1,6 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, Product, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialsBlock, SocialPlatform, SocialLink, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage } from '../types';
-import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon } from './Icons';
+import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon } from './Icons';
 import * as geminiService from '../services/geminiService';
 
 const URL_REGEX = new RegExp(
@@ -881,6 +880,7 @@ interface EditorPanelProps {
   setUserRole: (role: UserRole) => void;
   seoConfig: SeoConfig;
   setSeoConfig: (config: SeoConfig | ((prev: SeoConfig) => SeoConfig)) => void;
+  importPageData: (data: any) => boolean;
 }
 
 const MAX_FREE_BLOCKS = 5;
@@ -905,14 +905,24 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   profile, setProfile,
   blocks, addBlock, updateBlock, removeBlock, reorderBlocks,
   chatbotProfile, chatbotEnabled, isPremium, setChatbotProfile, setChatbotEnabled,
-  userRole, setUserRole, seoConfig, setSeoConfig,
+  userRole, setUserRole, seoConfig, setSeoConfig, importPageData,
 }) => {
     const [activeTab, setActiveTab] = useState<'content' | 'settings' | 'analytics'>('content');
     const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
     const [dropTargetId, setDropTargetId] = useState<string | null>(null);
     const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
     const [blockToDeleteId, setBlockToDeleteId] = useState<string | null>(null);
+    const [importData, setImportData] = useState<any | null>(null);
+    const [notification, setNotification] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => setNotification(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
+    
     useEffect(() => {
         const firstDraggableBlock = blocks.find(b => b.type !== BlockType.SOCIALS);
         if (firstDraggableBlock) {
@@ -964,21 +974,91 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     const handleCancelDelete = () => {
         setBlockToDeleteId(null);
     };
+    
+    const handleExport = () => {
+        const pageData = { profile, blocks, chatbotProfile, chatbotEnabled, seoConfig };
+        const jsonString = JSON.stringify(pageData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'bio-page-data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setNotification("Данные успешно экспортированы!");
+    };
+    
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result;
+                if (typeof text === 'string') {
+                    const data = JSON.parse(text);
+                    if (data.profile && data.blocks && data.seoConfig) {
+                        setImportData(data);
+                    } else {
+                        setNotification("Ошибка: Неверный формат файла.");
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to parse import file:", error);
+                setNotification("Ошибка: Не удалось прочитать файл.");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    };
+
+    const confirmImport = () => {
+        if (importData) {
+            const success = importPageData(importData);
+            if (success) {
+                setNotification("Данные успешно импортированы!");
+            } else {
+                 setNotification("Ошибка: Неверный формат файла.");
+            }
+            setImportData(null);
+        }
+    };
+
+    const cancelImport = () => {
+        setImportData(null);
+    };
 
   return (
     <div className="w-full bg-gray-800 h-screen flex flex-col">
        <header className="p-4 md:p-6 border-b border-gray-700">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-extrabold text-white">Панель управления</h1>
                     <p className="text-gray-400 text-sm">Управляйте контентом и настройками</p>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                    <span className="text-gray-400 hidden sm:inline">Роль:</span>
-                    <select value={userRole} onChange={(e) => setUserRole(e.target.value as UserRole)} className="bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white">
-                        <option value={UserRole.CLIENT}>Клиент</option>
-                        <option value={UserRole.ADMIN}>Администратор</option>
-                    </select>
+                <div className="flex items-center gap-2">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="application/json"
+                        className="hidden"
+                    />
+                    <button onClick={handleImportClick} className="flex items-center gap-2 p-2 text-sm text-gray-300 bg-gray-700/50 hover:bg-gray-700 rounded-md transition-colors" title="Импортировать данные">
+                        <UploadCloudIcon className="w-5 h-5"/>
+                        <span className="hidden sm:inline">Импорт</span>
+                    </button>
+                    <button onClick={handleExport} className="flex items-center gap-2 p-2 text-sm text-gray-300 bg-gray-700/50 hover:bg-gray-700 rounded-md transition-colors" title="Экспортировать данные">
+                        <DownloadCloudIcon className="w-5 h-5"/>
+                        <span className="hidden sm:inline">Экспорт</span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -992,7 +1072,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
         {userRole === UserRole.ADMIN && (
             <div className="mb-6 p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg">
-                <h3 className="text-xl font-bold text-yellow-400 mb-2">Панель Администратора</h3>
+                <h3 className="text-xl font-bold text-yellow-400 mb-2 flex items-center gap-2">
+                    <LockIcon className="w-5 h-5" />
+                    Панель Администратора
+                </h3>
                 <p className="text-yellow-300/80">Здесь будут находиться инструменты для управления пользователями и настройками платформы.</p>
             </div>
         )}
@@ -1097,6 +1180,39 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         )}
 
       </main>
+
+      {notification && (
+        <div className="fixed top-20 right-6 bg-gray-700 text-white py-2 px-4 rounded-lg shadow-lg z-50 border border-gray-600 animate-fade-in-out">
+            {notification}
+        </div>
+      )}
+      
+      {importData && (
+        <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            aria-modal="true"
+            role="dialog"
+        >
+            <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-full max-w-sm">
+                <h3 className="text-lg font-bold text-white mb-2">Подтвердите импорт</h3>
+                <p className="text-gray-400 mb-6">Это перезапишет все текущие данные на странице. Вы уверены, что хотите продолжить?</p>
+                <div className="flex justify-end gap-4">
+                    <button
+                        onClick={cancelImport}
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-semibold rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-500"
+                    >
+                        Отмена
+                    </button>
+                    <button
+                        onClick={confirmImport}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-600"
+                    >
+                        Импортировать
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
 
       {blockToDeleteId && (
         <div 
