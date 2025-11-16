@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Block, BlockType, LinkBlock, ShopBlock, Product, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialsBlock, SocialPlatform, SocialLink, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage } from '../types';
+import { Block, BlockType, LinkBlock, ShopBlock, Product, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialsBlock, SocialPlatform, SocialLink, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage, BaseBlock } from '../types';
 import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon, Share2Icon, GiftIcon } from './Icons';
 import * as geminiService from '../services/geminiService';
 import { compressToBase64 } from '../utils/compression';
@@ -116,6 +117,48 @@ const SocialIcon: React.FC<{ platform: SocialPlatform }> = ({ platform }) => {
     }
 };
 
+interface CustomStyleEditorProps {
+  block: BaseBlock;
+  updateBlock: (id: string, updates: Partial<BaseBlock>) => void;
+}
+
+const CustomStyleEditor: React.FC<CustomStyleEditorProps> = ({ block, updateBlock }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="mt-4 pt-3 border-t border-gray-700/50">
+      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center text-sm font-semibold text-gray-300 hover:text-white">
+        <span>Дополнительные стили</span>
+        <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div className="mt-3 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Пользовательские CSS классы</label>
+            <input
+              type="text"
+              placeholder="e.g., animate-bounce my-custom-class"
+              value={block.customCss || ''}
+              onChange={(e) => updateBlock(block.id, { customCss: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Пользовательские инлайн-стили</label>
+            <textarea
+              placeholder="e.g., border: 1px solid red; border-radius: 20px;"
+              value={block.customStyles || ''}
+              onChange={(e) => updateBlock(block.id, { customStyles: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm h-20 resize-none font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 interface SocialsBlockEditorProps {
   block: SocialsBlock;
   updateBlock: (id: string, updates: Partial<SocialsBlock>) => void;
@@ -146,41 +189,44 @@ const SocialsBlockEditor: React.FC<SocialsBlockEditorProps> = ({ block, updateBl
     };
 
     return (
-        <div className="space-y-3">
-            {block.links.map(link => (
-                <div key={link.id} className="flex items-center gap-2">
-                    <SocialIcon platform={link.platform} />
+        <div>
+            <div className="space-y-3">
+                {block.links.map(link => (
+                    <div key={link.id} className="flex items-center gap-2">
+                        <SocialIcon platform={link.platform} />
+                        <input
+                            type="text"
+                            placeholder="URL"
+                            value={link.url}
+                            onChange={(e) => handleLinkChange(link.id, e.target.value)}
+                            className="flex-grow bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                        <button onClick={() => removeLink(link.id)} className="p-1 text-gray-400 hover:text-red-500">
+                            <TrashIcon className="w-4 h-4" />
+                        </button>
+                    </div>
+                ))}
+                <div className="flex items-center gap-2 pt-2 border-t border-gray-700/50">
+                    <select 
+                        value={newLinkPlatform}
+                        onChange={(e) => setNewLinkPlatform(e.target.value as SocialPlatform)}
+                        className="bg-gray-700 border border-gray-600 rounded-md px-2 py-2 text-white capitalize"
+                    >
+                        {Object.values(SocialPlatform).map(p => <option key={p} value={p} className="capitalize">{p}</option>)}
+                    </select>
                     <input
                         type="text"
                         placeholder="URL"
-                        value={link.url}
-                        onChange={(e) => handleLinkChange(link.id, e.target.value)}
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
                         className="flex-grow bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     />
-                    <button onClick={() => removeLink(link.id)} className="p-1 text-gray-400 hover:text-red-500">
-                        <TrashIcon className="w-4 h-4" />
+                    <button onClick={addLink} className="p-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white">
+                        <PlusIcon className="w-5 h-5" />
                     </button>
                 </div>
-            ))}
-            <div className="flex items-center gap-2 pt-2 border-t border-gray-700/50">
-                <select 
-                    value={newLinkPlatform}
-                    onChange={(e) => setNewLinkPlatform(e.target.value as SocialPlatform)}
-                    className="bg-gray-700 border border-gray-600 rounded-md px-2 py-2 text-white capitalize"
-                >
-                    {Object.values(SocialPlatform).map(p => <option key={p} value={p} className="capitalize">{p}</option>)}
-                </select>
-                <input
-                    type="text"
-                    placeholder="URL"
-                    value={newLinkUrl}
-                    onChange={(e) => setNewLinkUrl(e.target.value)}
-                    className="flex-grow bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-                <button onClick={addLink} className="p-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white">
-                    <PlusIcon className="w-5 h-5" />
-                </button>
             </div>
+            <CustomStyleEditor block={block} updateBlock={updateBlock} />
         </div>
     );
 };
@@ -231,45 +277,48 @@ const LinkBlockEditor: React.FC<LinkBlockEditorProps> = ({ block, updateBlock })
   };
 
   return (
-    <div className="space-y-3">
-      <input
-        type="text"
-        placeholder="Заголовок"
-        value={block.title}
-        onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-        className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-      />
-      <div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            placeholder="URL"
-            value={block.url}
-            onChange={handleUrlChange}
-            className={`flex-grow bg-gray-700 border rounded-md px-3 py-2 text-white focus:ring-2 focus:outline-none transition-colors ${
-              isUrlValid
-                ? 'border-gray-600 focus:ring-indigo-500'
-                : 'border-red-500/70 focus:ring-red-500 ring-1 ring-red-500/50'
-            }`}
-          />
-          <button onClick={handleGenerateTitles} disabled={isLoading || !block.url.trim() || !isUrlValid} className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3 py-2 rounded-md transition-colors disabled:bg-indigo-800 disabled:cursor-not-allowed">
-            <WandSparklesIcon className="w-5 h-5" />
-            {isLoading ? 'Генерация...' : 'Сгенерировать'}
-          </button>
+    <div>
+        <div className="space-y-3">
+            <input
+                type="text"
+                placeholder="Заголовок"
+                value={block.title}
+                onChange={(e) => updateBlock(block.id, { title: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+            <div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                    type="text"
+                    placeholder="URL"
+                    value={block.url}
+                    onChange={handleUrlChange}
+                    className={`flex-grow bg-gray-700 border rounded-md px-3 py-2 text-white focus:ring-2 focus:outline-none transition-colors ${
+                    isUrlValid
+                        ? 'border-gray-600 focus:ring-indigo-500'
+                        : 'border-red-500/70 focus:ring-red-500 ring-1 ring-red-500/50'
+                    }`}
+                />
+                <button onClick={handleGenerateTitles} disabled={isLoading || !block.url.trim() || !isUrlValid} className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3 py-2 rounded-md transition-colors disabled:bg-indigo-800 disabled:cursor-not-allowed">
+                    <WandSparklesIcon className="w-5 h-5" />
+                    {isLoading ? 'Генерация...' : 'Сгенерировать'}
+                </button>
+                </div>
+                {!isUrlValid && (
+                    <p className="text-xs text-red-400 mt-1.5">Пожалуйста, введите действительный URL.</p>
+                )}
+            </div>
+            {suggestions.length > 0 && (
+                <div className="p-3 bg-gray-900 rounded-md space-y-2">
+                <p className="text-sm text-gray-300">Предложения:</p>
+                {suggestions.map((s, i) => (
+                    <button key={i} onClick={() => applySuggestion(s)} className="block w-full text-left p-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-colors">{s}</button>
+                ))}
+                </div>
+            )}
+            <p className="text-sm text-gray-400 pt-1">Клики: {block.clicks}</p>
         </div>
-        {!isUrlValid && (
-            <p className="text-xs text-red-400 mt-1.5">Пожалуйста, введите действительный URL.</p>
-        )}
-      </div>
-      {suggestions.length > 0 && (
-        <div className="p-3 bg-gray-900 rounded-md space-y-2">
-          <p className="text-sm text-gray-300">Предложения:</p>
-          {suggestions.map((s, i) => (
-             <button key={i} onClick={() => applySuggestion(s)} className="block w-full text-left p-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-colors">{s}</button>
-          ))}
-        </div>
-      )}
-      <p className="text-sm text-gray-400 pt-1">Клики: {block.clicks}</p>
+        <CustomStyleEditor block={block} updateBlock={updateBlock} />
     </div>
   );
 };
@@ -309,30 +358,33 @@ const ShopBlockEditor: React.FC<ShopBlockEditorProps> = ({ block, updateBlock })
     };
 
     return (
-        <div className="space-y-4">
-            <input
-                type="text"
-                placeholder="Название магазина"
-                value={block.title}
-                onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
-            <div className="space-y-3">
-                {block.products.map(product => (
-                    <div key={product.id} className="bg-gray-900 p-3 rounded-lg space-y-2 border border-gray-700 relative">
-                        <button onClick={() => removeProduct(product.id)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
-                        <input type="text" placeholder="Название товара" value={product.name} onChange={e => handleProductChange(product.id, { name: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white" />
-                        <input type="number" placeholder="Цена" value={product.price} onChange={e => handleProductChange(product.id, { price: parseFloat(e.target.value) || 0 })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white" />
-                        <div className="relative">
-                           <textarea placeholder="Описание" value={product.description} onChange={e => handleProductChange(product.id, { description: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white h-20 resize-none" />
-                           <button onClick={() => handleGenerateDescription(product)} disabled={loadingStates[product.id]} className="absolute bottom-2 right-2 bg-indigo-600 p-1.5 rounded-md hover:bg-indigo-700 disabled:bg-indigo-800" aria-label="Сгенерировать описание">
-                             <WandSparklesIcon className="w-4 h-4 text-white"/>
-                           </button>
+        <div>
+            <div className="space-y-4">
+                <input
+                    type="text"
+                    placeholder="Название магазина"
+                    value={block.title}
+                    onChange={(e) => updateBlock(block.id, { title: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+                <div className="space-y-3">
+                    {block.products.map(product => (
+                        <div key={product.id} className="bg-gray-900 p-3 rounded-lg space-y-2 border border-gray-700 relative">
+                            <button onClick={() => removeProduct(product.id)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
+                            <input type="text" placeholder="Название товара" value={product.name} onChange={e => handleProductChange(product.id, { name: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white" />
+                            <input type="number" placeholder="Цена" value={product.price} onChange={e => handleProductChange(product.id, { price: parseFloat(e.target.value) || 0 })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white" />
+                            <div className="relative">
+                            <textarea placeholder="Описание" value={product.description} onChange={e => handleProductChange(product.id, { description: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white h-20 resize-none" />
+                            <button onClick={() => handleGenerateDescription(product)} disabled={loadingStates[product.id]} className="absolute bottom-2 right-2 bg-indigo-600 p-1.5 rounded-md hover:bg-indigo-700 disabled:bg-indigo-800" aria-label="Сгенерировать описание">
+                                <WandSparklesIcon className="w-4 h-4 text-white"/>
+                            </button>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
+                <button onClick={addProduct} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-md">Добавить товар</button>
             </div>
-            <button onClick={addProduct} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-md">Добавить товар</button>
+            <CustomStyleEditor block={block} updateBlock={updateBlock} />
         </div>
     );
 };
@@ -428,16 +480,19 @@ const ChatbotEditor: React.FC<ChatbotEditorProps> = ({ profile, isEnabled, isPre
 
 const SearchBlockEditor: React.FC<{ block: SearchBlock, updateBlock: (id: string, updates: Partial<SearchBlock>) => void }> = ({ block, updateBlock }) => {
   return (
-    <div className="space-y-3">
-      <label className="text-sm text-gray-400">Заголовок виджета</label>
-      <input
-        type="text"
-        placeholder="Заголовок"
-        value={block.title}
-        onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-        className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-      />
-      <p className="text-sm text-gray-400">Этот блок добавляет на вашу страницу виджет поиска Google.</p>
+    <div>
+        <div className="space-y-3">
+            <label className="text-sm text-gray-400">Заголовок виджета</label>
+            <input
+                type="text"
+                placeholder="Заголовок"
+                value={block.title}
+                onChange={(e) => updateBlock(block.id, { title: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+            <p className="text-sm text-gray-400">Этот блок добавляет на вашу страницу виджет поиска Google.</p>
+        </div>
+        <CustomStyleEditor block={block} updateBlock={updateBlock} />
     </div>
   );
 };
@@ -590,8 +645,8 @@ const DropZone: React.FC<DropZoneProps> = ({ onDrop, acceptedMimeTypes, children
         setIsDraggingOver(false);
         const files = e.dataTransfer.files;
         if (files && files.length > 0) {
-// FIX: Explicitly type 'file' as 'File' to resolve type inference issues.
-            const acceptedFiles = Array.from(files).filter((file: File) => 
+            // FIX: Explicitly cast Array.from(files) to File[] to address incorrect type inference from FileList.
+            const acceptedFiles = (Array.from(files) as File[]).filter(file => 
                 acceptedMimeTypes.some(type => file.type.startsWith(type))
             );
             if (acceptedFiles.length > 0) {
@@ -624,12 +679,15 @@ interface TextBlockEditorProps {
   updateBlock: (id: string, updates: Partial<TextBlock>) => void;
 }
 const TextBlockEditor: React.FC<TextBlockEditorProps> = ({ block, updateBlock }) => (
-    <textarea
-        placeholder="Введите текст..."
-        value={block.content}
-        onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-        className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white h-24 resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-    />
+    <div>
+        <textarea
+            placeholder="Введите текст..."
+            value={block.content}
+            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+            className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white h-24 resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+        />
+        <CustomStyleEditor block={block} updateBlock={updateBlock} />
+    </div>
 );
 
 
@@ -649,31 +707,34 @@ const ImageBlockEditor: React.FC<ImageBlockEditorProps> = ({ block, updateBlock 
     };
 
     return (
-        <div className="space-y-3">
-            <DropZone onDrop={handleImageDrop} acceptedMimeTypes={['image/']}>
-                {block.url ? (
-                    <img src={block.url} alt="Загружено" className="max-h-40 mx-auto rounded-md" />
-                ) : (
-                    <div className="text-gray-400">
-                        <ImageIcon className="w-10 h-10 mx-auto mb-2" />
-                        <p>Перетащите изображение сюда или введите URL ниже.</p>
-                    </div>
-                )}
-            </DropZone>
-            <input
-                type="text"
-                placeholder="URL изображения"
-                value={block.url}
-                onChange={(e) => updateBlock(block.id, { url: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
-            />
-            <input
-                type="text"
-                placeholder="Подпись"
-                value={block.caption}
-                onChange={(e) => updateBlock(block.id, { caption: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
-            />
+        <div>
+            <div className="space-y-3">
+                <DropZone onDrop={handleImageDrop} acceptedMimeTypes={['image/']}>
+                    {block.url ? (
+                        <img src={block.url} alt="Загружено" className="max-h-40 mx-auto rounded-md" />
+                    ) : (
+                        <div className="text-gray-400">
+                            <ImageIcon className="w-10 h-10 mx-auto mb-2" />
+                            <p>Перетащите изображение сюда или введите URL ниже.</p>
+                        </div>
+                    )}
+                </DropZone>
+                <input
+                    type="text"
+                    placeholder="URL изображения"
+                    value={block.url}
+                    onChange={(e) => updateBlock(block.id, { url: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+                />
+                <input
+                    type="text"
+                    placeholder="Подпись"
+                    value={block.caption}
+                    onChange={(e) => updateBlock(block.id, { caption: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+                />
+            </div>
+            <CustomStyleEditor block={block} updateBlock={updateBlock} />
         </div>
     );
 }
@@ -694,24 +755,27 @@ const VideoBlockEditor: React.FC<VideoBlockEditorProps> = ({ block, updateBlock 
     };
 
     return (
-        <div className="space-y-3">
-             <DropZone onDrop={handleVideoDrop} acceptedMimeTypes={['video/']}>
-                {block.url && block.url.startsWith('blob:') ? (
-                    <video src={block.url} controls className="max-h-40 mx-auto rounded-md" />
-                ) : (
-                    <div className="text-gray-400">
-                        <VideoIcon className="w-10 h-10 mx-auto mb-2" />
-                        <p>Перетащите видео сюда или вставьте ссылку YouTube/Vimeo ниже.</p>
-                    </div>
-                )}
-            </DropZone>
-            <input
-                type="text"
-                placeholder="URL видео (YouTube, Vimeo или прямой)"
-                value={block.url}
-                onChange={(e) => updateBlock(block.id, { url: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
-            />
+        <div>
+            <div className="space-y-3">
+                <DropZone onDrop={handleVideoDrop} acceptedMimeTypes={['video/']}>
+                    {block.url && block.url.startsWith('blob:') ? (
+                        <video src={block.url} controls className="max-h-40 mx-auto rounded-md" />
+                    ) : (
+                        <div className="text-gray-400">
+                            <VideoIcon className="w-10 h-10 mx-auto mb-2" />
+                            <p>Перетащите видео сюда или вставьте ссылку YouTube/Vimeo ниже.</p>
+                        </div>
+                    )}
+                </DropZone>
+                <input
+                    type="text"
+                    placeholder="URL видео (YouTube, Vimeo или прямой)"
+                    value={block.url}
+                    onChange={(e) => updateBlock(block.id, { url: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+                />
+            </div>
+            <CustomStyleEditor block={block} updateBlock={updateBlock} />
         </div>
     );
 };
@@ -732,70 +796,72 @@ const ButtonBlockEditor: React.FC<ButtonBlockEditorProps> = ({ block, updateBloc
   };
 
   return (
-    <div className="space-y-4">
-      <input type="text" placeholder="Текст кнопки" value={block.text} onChange={(e) => updateBlock(block.id, { text: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"/>
-      <input type="text" placeholder="URL" value={block.url} onChange={(e) => updateBlock(block.id, { url: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"/>
-      
-      <div className="p-3 bg-gray-900 rounded-md border border-gray-700 space-y-3">
-        <h4 className="text-sm font-semibold text-gray-300">Стиль кнопки</h4>
-        <div className="flex gap-2">
-            <button onClick={() => handleStyleChange({ type: 'fill' })} className={`flex-1 p-2 rounded-md text-sm ${block.style.type === 'fill' ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>Заливка</button>
-            <button 
-                onClick={() => isPremium && handleStyleChange({ type: 'image' })} 
-                className={`flex-1 p-2 rounded-md text-sm relative flex items-center justify-center gap-2 ${block.style.type === 'image' ? 'bg-indigo-600 text-white' : 'bg-gray-700'} ${isPremium ? 'hover:bg-gray-600' : 'cursor-not-allowed text-gray-400'}`}
-            >
-                {!isPremium && <LockIcon className="w-4 h-4" />}
-                Изображение
-            </button>
-        </div>
-        
-        {block.style.type === 'fill' && (
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <label className="text-xs text-gray-400">Цвет фона</label>
-                    <input type="color" value={block.style.backgroundColor || '#6366f1'} onChange={(e) => handleStyleChange({ backgroundColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
+    <div>
+        <div className="space-y-4">
+            <input type="text" placeholder="Текст кнопки" value={block.text} onChange={(e) => updateBlock(block.id, { text: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"/>
+            <input type="text" placeholder="URL" value={block.url} onChange={(e) => updateBlock(block.id, { url: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"/>
+            
+            <div className="p-3 bg-gray-900 rounded-md border border-gray-700 space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">Стиль кнопки</h4>
+                <div className="flex gap-2">
+                    <button onClick={() => handleStyleChange({ type: 'fill' })} className={`flex-1 p-2 rounded-md text-sm ${block.style.type === 'fill' ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>Заливка</button>
+                    <button 
+                        onClick={() => isPremium && handleStyleChange({ type: 'image' })} 
+                        className={`flex-1 p-2 rounded-md text-sm relative flex items-center justify-center gap-2 ${block.style.type === 'image' ? 'bg-indigo-600 text-white' : 'bg-gray-700'} ${isPremium ? 'hover:bg-gray-600' : 'cursor-not-allowed text-gray-400'}`}
+                    >
+                        {!isPremium && <LockIcon className="w-4 h-4" />}
+                        Изображение
+                    </button>
                 </div>
-                 <div>
-                    <label className="text-xs text-gray-400">Цвет текста</label>
-                    <input type="color" value={block.style.textColor || '#ffffff'} onChange={(e) => handleStyleChange({ textColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
-                </div>
+                
+                {block.style.type === 'fill' && (
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs text-gray-400">Цвет фона</label>
+                            <input type="color" value={block.style.backgroundColor || '#6366f1'} onChange={(e) => handleStyleChange({ backgroundColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-400">Цвет текста</label>
+                            <input type="color" value={block.style.textColor || '#ffffff'} onChange={(e) => handleStyleChange({ textColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
+                        </div>
+                    </div>
+                )}
+
+                {block.style.type === 'image' && isPremium && (
+                    <input type="text" placeholder="URL фонового изображения" value={block.style.imageUrl || ''} onChange={(e) => handleStyleChange({ imageUrl: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"/>
+                )}
             </div>
-        )}
 
-        {block.style.type === 'image' && isPremium && (
-            <input type="text" placeholder="URL фонового изображения" value={block.style.imageUrl || ''} onChange={(e) => handleStyleChange({ imageUrl: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"/>
-        )}
-      </div>
-
-      <div className="p-3 bg-gray-900 rounded-md border border-gray-700 space-y-3">
-          <h4 className="text-sm font-semibold text-gray-300">Эффекты при наведении</h4>
-          <div className="grid grid-cols-2 gap-3">
-              <div>
-                  <label className="block text-xs text-gray-400 mb-1">Тень</label>
-                  <select value={block.style.hover?.shadow || 'none'} onChange={e => handleHoverChange({ shadow: e.target.value as any })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-white">
-                      <option value="none">Нет</option>
-                      <option value="sm">Маленькая</option>
-                      <option value="md">Средняя</option>
-                      <option value="lg">Большая</option>
-                  </select>
-              </div>
-               <div>
-                  <label className="block text-xs text-gray-400 mb-1">Масштаб</label>
-                  <select value={block.style.hover?.scale || 'none'} onChange={e => handleHoverChange({ scale: e.target.value as any })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-white">
-                      <option value="none">Нет</option>
-                      <option value="sm">105%</option>
-                      <option value="md">110%</option>
-                  </select>
-              </div>
-          </div>
-          {block.style.type === 'fill' && (
-              <div>
-                  <label className="text-xs text-gray-400">Цвет фона при наведении</label>
-                  <input type="color" value={block.style.hover?.backgroundColor || block.style.backgroundColor} onChange={(e) => handleHoverChange({ backgroundColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
-              </div>
-          )}
-      </div>
-
+            <div className="p-3 bg-gray-900 rounded-md border border-gray-700 space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">Эффекты при наведении</h4>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs text-gray-400 mb-1">Тень</label>
+                        <select value={block.style.hover?.shadow || 'none'} onChange={e => handleHoverChange({ shadow: e.target.value as any })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-white">
+                            <option value="none">Нет</option>
+                            <option value="sm">Маленькая</option>
+                            <option value="md">Средняя</option>
+                            <option value="lg">Большая</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-gray-400 mb-1">Масштаб</label>
+                        <select value={block.style.hover?.scale || 'none'} onChange={e => handleHoverChange({ scale: e.target.value as any })} className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1.5 text-white">
+                            <option value="none">Нет</option>
+                            <option value="sm">105%</option>
+                            <option value="md">110%</option>
+                        </select>
+                    </div>
+                </div>
+                {block.style.type === 'fill' && (
+                    <div>
+                        <label className="text-xs text-gray-400">Цвет фона при наведении</label>
+                        <input type="color" value={block.style.hover?.backgroundColor || block.style.backgroundColor} onChange={(e) => handleHoverChange({ backgroundColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
+                    </div>
+                )}
+            </div>
+        </div>
+        <CustomStyleEditor block={block} updateBlock={updateBlock} />
     </div>
   );
 };
@@ -841,33 +907,36 @@ const ImageCarouselBlockEditor: React.FC<ImageCarouselBlockEditorProps> = ({ blo
     };
 
     return (
-        <div className="space-y-4">
-            <DropZone onDrop={handleImageDrop} acceptedMimeTypes={['image/']}>
-                <div className="text-gray-400">
-                    <ImageIcon className="w-10 h-10 mx-auto mb-2" />
-                    <p>Перетащите одно или несколько изображений сюда.</p>
-                </div>
-            </DropZone>
-            <div className="space-y-3">
-                {block.images.map(image => (
-                    <div key={image.id} className="flex items-center gap-2 bg-gray-900 p-2 rounded-md">
-                        <img src={image.url} alt="thumbnail" className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
-                        <input
-                            type="text"
-                            placeholder="URL изображения"
-                            value={image.url}
-                            onChange={(e) => handleUrlChange(image.id, e.target.value)}
-                            className="flex-grow bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
-                        />
-                         <button onClick={() => removeImage(image.id)} className="p-1 text-gray-400 hover:text-red-500">
-                            <TrashIcon className="w-5 h-5" />
-                        </button>
+        <div>
+            <div className="space-y-4">
+                <DropZone onDrop={handleImageDrop} acceptedMimeTypes={['image/']}>
+                    <div className="text-gray-400">
+                        <ImageIcon className="w-10 h-10 mx-auto mb-2" />
+                        <p>Перетащите одно или несколько изображений сюда.</p>
                     </div>
-                ))}
+                </DropZone>
+                <div className="space-y-3">
+                    {block.images.map(image => (
+                        <div key={image.id} className="flex items-center gap-2 bg-gray-900 p-2 rounded-md">
+                            <img src={image.url} alt="thumbnail" className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
+                            <input
+                                type="text"
+                                placeholder="URL изображения"
+                                value={image.url}
+                                onChange={(e) => handleUrlChange(image.id, e.target.value)}
+                                className="flex-grow bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
+                            />
+                            <button onClick={() => removeImage(image.id)} className="p-1 text-gray-400 hover:text-red-500">
+                                <TrashIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+                <button onClick={addImageByUrl} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-md text-sm">
+                    Добавить изображение по URL
+                </button>
             </div>
-             <button onClick={addImageByUrl} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-md text-sm">
-                Добавить изображение по URL
-            </button>
+            <CustomStyleEditor block={block} updateBlock={updateBlock} />
         </div>
     );
 };

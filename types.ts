@@ -1,4 +1,5 @@
 
+
 export enum UserRole {
   CLIENT = 'client',
   ADMIN = 'admin',
@@ -19,6 +20,8 @@ export enum BlockType {
 export interface BaseBlock {
   id: string;
   type: BlockType;
+  customCss?: string;
+  customStyles?: string;
 }
 
 export enum SocialPlatform {

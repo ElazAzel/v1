@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, Product, ShopBlock, ChatbotProfile, SearchBlock, Profile, SocialsBlock, SocialPlatform, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage } from '../types';
 import { ShoppingCartIcon, SearchIcon, SendIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, GlobeIcon, ShareIcon } from './Icons';
@@ -10,6 +11,27 @@ interface CartItem {
   product: Product;
   quantity: number;
 }
+
+const parseCustomStyles = (styleString?: string): React.CSSProperties => {
+    if (!styleString) return {};
+    try {
+        const style: React.CSSProperties = {};
+        styleString.split(';').forEach(declaration => {
+            if (declaration.trim()) {
+                const [property, value] = declaration.split(':');
+                if (property && value) {
+                    const camelCaseProperty = property.trim().replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
+                    style[camelCaseProperty as any] = value.trim();
+                }
+            }
+        });
+        return style;
+    } catch (error) {
+        console.error("Failed to parse custom styles:", error);
+        return {};
+    }
+};
+
 
 const SocialIcon: React.FC<{ platform: SocialPlatform }> = ({ platform }) => {
     const className = "w-6 h-6 text-gray-300 hover:text-white transition-colors";
@@ -57,9 +79,13 @@ const PublicSocialsBlock: React.FC<{ block: SocialsBlock }> = ({ block }) => {
   
   const pageTitle = document.title;
   const pageUrl = window.location.href;
+  const customStyles = parseCustomStyles(block.customStyles);
 
   return (
-    <div className="flex justify-center items-center gap-5">
+    <div 
+      className={`flex justify-center items-center gap-5 ${block.customCss || ''}`}
+      style={customStyles}
+    >
       {block.links.map(link => (
         <a 
           key={link.id} 
@@ -107,20 +133,25 @@ const PublicSocialsBlock: React.FC<{ block: SocialsBlock }> = ({ block }) => {
   );
 };
 
-const PublicLinkBlock: React.FC<{ block: LinkBlock, onLinkClick: (id: string) => void }> = ({ block, onLinkClick }) => (
-  <a
-    href={block.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    onClick={() => onLinkClick(block.id)}
-    className="block w-full bg-gray-700/50 backdrop-blur-md border border-gray-600/50 text-white text-sm sm:text-base font-semibold text-center py-3 sm:py-4 px-4 sm:px-6 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:bg-indigo-600/60 hover:shadow-lg hover:shadow-indigo-500/30"
-  >
-    {block.title}
-  </a>
-);
+const PublicLinkBlock: React.FC<{ block: LinkBlock, onLinkClick: (id: string) => void }> = ({ block, onLinkClick }) => {
+    const customStyles = parseCustomStyles(block.customStyles);
+    return (
+        <a
+            href={block.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => onLinkClick(block.id)}
+            className={`block w-full bg-gray-700/50 backdrop-blur-md border border-gray-600/50 text-white text-sm sm:text-base font-semibold text-center py-3 sm:py-4 px-4 sm:px-6 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:bg-indigo-600/60 hover:shadow-lg hover:shadow-indigo-500/30 ${block.customCss || ''}`}
+            style={customStyles}
+        >
+            {block.title}
+        </a>
+    )
+};
 
 const PublicShopBlock: React.FC<{ block: ShopBlock }> = ({ block }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const customStyles = parseCustomStyles(block.customStyles);
 
   const addToCart = (product: Product) => {
     setCart(prevCart => {
@@ -137,7 +168,10 @@ const PublicShopBlock: React.FC<{ block: ShopBlock }> = ({ block }) => {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="w-full bg-gray-800/50 rounded-lg p-4 backdrop-blur-sm border border-gray-700/50">
+    <div 
+        className={`w-full bg-gray-800/50 rounded-lg p-4 backdrop-blur-sm border border-gray-700/50 ${block.customCss || ''}`}
+        style={customStyles}
+    >
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-white">{block.title}</h3>
         <div className="relative">
@@ -167,6 +201,7 @@ const PublicSearchBlock: React.FC<{ block: SearchBlock }> = ({ block }) => {
     const [query, setQuery] = useState('');
     const [result, setResult] = useState<{ text: string; sources: any[] } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const customStyles = parseCustomStyles(block.customStyles);
 
     const handleSearch = async () => {
         if (!query.trim()) return;
@@ -184,7 +219,10 @@ const PublicSearchBlock: React.FC<{ block: SearchBlock }> = ({ block }) => {
     };
     
     return (
-        <div className="w-full bg-gray-800/50 rounded-lg p-4 backdrop-blur-sm space-y-4 border border-gray-700/50">
+        <div 
+            className={`w-full bg-gray-800/50 rounded-lg p-4 backdrop-blur-sm space-y-4 border border-gray-700/50 ${block.customCss || ''}`}
+            style={customStyles}
+        >
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <SearchIcon className="w-5 h-5" />
                 {block.title}
@@ -229,18 +267,27 @@ const PublicSearchBlock: React.FC<{ block: SearchBlock }> = ({ block }) => {
     );
 };
 
-const PublicTextBlock: React.FC<{ block: TextBlock }> = ({ block }) => (
-  <p className="w-full text-white text-sm sm:text-base text-center whitespace-pre-wrap px-2">
-    {block.content}
-  </p>
-);
+const PublicTextBlock: React.FC<{ block: TextBlock }> = ({ block }) => {
+    const customStyles = parseCustomStyles(block.customStyles);
+    return (
+        <p
+            className={`w-full text-white text-sm sm:text-base text-center whitespace-pre-wrap px-2 ${block.customCss || ''}`}
+            style={customStyles}
+        >
+            {block.content}
+        </p>
+    );
+};
 
-const PublicImageBlock: React.FC<{ block: ImageBlock }> = ({ block }) => (
-  <figure className="w-full">
-    {block.url && <img src={block.url} alt={block.caption || 'User content'} className="w-full rounded-lg object-cover" />}
-    {block.caption && <figcaption className="text-center text-xs text-gray-400 mt-2">{block.caption}</figcaption>}
-  </figure>
-);
+const PublicImageBlock: React.FC<{ block: ImageBlock }> = ({ block }) => {
+    const customStyles = parseCustomStyles(block.customStyles);
+    return (
+        <figure className={`w-full ${block.customCss || ''}`} style={customStyles}>
+            {block.url && <img src={block.url} alt={block.caption || 'User content'} className="w-full rounded-lg object-cover" />}
+            {block.caption && <figcaption className="text-center text-xs text-gray-400 mt-2">{block.caption}</figcaption>}
+        </figure>
+    );
+};
 
 const getYouTubeId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -256,11 +303,12 @@ const getVimeoId = (url: string) => {
 
 const PublicVideoBlock: React.FC<{ block: VideoBlock }> = ({ block }) => {
     if (!block.url) return null;
+    const customStyles = parseCustomStyles(block.customStyles);
 
     const youtubeId = getYouTubeId(block.url);
     if (youtubeId) {
         return (
-            <div className="w-full aspect-video">
+            <div className={`w-full aspect-video ${block.customCss || ''}`} style={customStyles}>
                 <iframe
                     className="w-full h-full rounded-lg"
                     src={`https://www.youtube.com/embed/${youtubeId}`}
@@ -276,7 +324,7 @@ const PublicVideoBlock: React.FC<{ block: VideoBlock }> = ({ block }) => {
     const vimeoId = getVimeoId(block.url);
     if (vimeoId) {
         return (
-            <div className="w-full aspect-video">
+            <div className={`w-full aspect-video ${block.customCss || ''}`} style={customStyles}>
                 <iframe
                     className="w-full h-full rounded-lg"
                     src={`https://player.vimeo.com/video/${vimeoId}`}
@@ -290,7 +338,7 @@ const PublicVideoBlock: React.FC<{ block: VideoBlock }> = ({ block }) => {
     }
 
     return (
-        <div className="w-full">
+        <div className={`w-full ${block.customCss || ''}`} style={customStyles}>
             <video src={block.url} controls className="w-full rounded-lg" />
         </div>
     );
@@ -298,6 +346,7 @@ const PublicVideoBlock: React.FC<{ block: VideoBlock }> = ({ block }) => {
 
 const PublicButtonBlock: React.FC<{ block: ButtonBlock, onLinkClick: (id: string) => void }> = ({ block, onLinkClick }) => {
     const [isHovered, setIsHovered] = useState(false);
+    const customStyles = parseCustomStyles(block.customStyles);
     const baseStyle: React.CSSProperties = {};
     
     if (block.style.type === 'image' && block.style.imageUrl) {
@@ -307,7 +356,7 @@ const PublicButtonBlock: React.FC<{ block: ButtonBlock, onLinkClick: (id: string
         baseStyle.textShadow = '0px 1px 4px rgba(0, 0, 0, 0.5)';
     }
 
-    const dynamicStyle: React.CSSProperties = { ...baseStyle };
+    const dynamicStyle: React.CSSProperties = { ...baseStyle, ...customStyles };
 
     if (block.style.type === 'fill') {
         dynamicStyle.color = block.style.textColor;
@@ -342,7 +391,7 @@ const PublicButtonBlock: React.FC<{ block: ButtonBlock, onLinkClick: (id: string
             style={dynamicStyle}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`block w-full text-white text-sm sm:text-base font-semibold text-center py-3 sm:py-4 px-4 sm:px-6 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 border border-gray-600/50 ${shadowClass} ${scaleClass}`}
+            className={`block w-full text-white text-sm sm:text-base font-semibold text-center py-3 sm:py-4 px-4 sm:px-6 rounded-lg shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 border border-gray-600/50 ${shadowClass} ${scaleClass} ${block.customCss || ''}`}
         >
             {block.text}
         </a>
@@ -351,6 +400,7 @@ const PublicButtonBlock: React.FC<{ block: ButtonBlock, onLinkClick: (id: string
 
 const PublicImageCarouselBlock: React.FC<{ block: ImageCarouselBlock }> = ({ block }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const customStyles = parseCustomStyles(block.customStyles);
 
     if (!block.images || block.images.length === 0) {
         return null;
@@ -369,7 +419,10 @@ const PublicImageCarouselBlock: React.FC<{ block: ImageCarouselBlock }> = ({ blo
     };
 
     return (
-        <div className="w-full aspect-w-4 aspect-h-3 relative rounded-lg overflow-hidden">
+        <div 
+            className={`w-full aspect-w-4 aspect-h-3 relative rounded-lg overflow-hidden ${block.customCss || ''}`}
+            style={customStyles}
+        >
             <div className="w-full h-full flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
                 {block.images.map((image) => (
                     <img key={image.id} src={image.url} alt="Carousel image" className="w-full h-full object-cover flex-shrink-0" />
@@ -403,47 +456,44 @@ interface PreviewPanelProps {
 
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({ profile, blocks, chatbotProfile, chatbotEnabled, onLinkClick }) => {
   return (
-    <div className="w-full h-screen bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1536566482680-fca31930a085?q=80&w=1920&auto=format&fit=crop')" }}>
-      <div className="w-full h-full bg-gray-900/80 backdrop-blur-sm flex justify-center p-4 md:py-10 md:px-4">
-        <div className="w-full max-w-sm h-full bg-black rounded-[40px] shadow-2xl p-2 border-4 border-gray-700 overflow-hidden relative">
-          <div className="w-full h-full bg-gradient-to-b from-gray-800 to-black rounded-[32px] overflow-y-auto">
-             <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-b-xl z-10" />
-            <div className="p-4 flex flex-col items-center space-y-4 pt-12">
-              <img src={profile.avatarUrl} alt="Profile" className="w-24 h-24 rounded-full border-4 border-gray-600 shadow-lg" />
-              <h2 className="text-2xl font-bold text-white">{profile.username}</h2>
-              <p className="text-center text-gray-300 text-sm">{profile.bio}</p>
-              
-              <div className="w-full space-y-4 pt-4">
-                {blocks.map(block => {
-                  switch (block.type) {
-                    case BlockType.SOCIALS:
-                      return <PublicSocialsBlock key={block.id} block={block} />;
-                    case BlockType.LINK:
-                      return <PublicLinkBlock key={block.id} block={block} onLinkClick={onLinkClick} />;
-                    case BlockType.SHOP:
-                      return <PublicShopBlock key={block.id} block={block} />;
-                    case BlockType.SEARCH:
-                      return <PublicSearchBlock key={block.id} block={block} />;
-                    case BlockType.TEXT:
-                        return <PublicTextBlock key={block.id} block={block} />;
-                    case BlockType.IMAGE:
-                        return <PublicImageBlock key={block.id} block={block} />;
-                    case BlockType.VIDEO:
-                        return <PublicVideoBlock key={block.id} block={block} />;
-                    case BlockType.BUTTON:
-                        return <PublicButtonBlock key={block.id} block={block} onLinkClick={onLinkClick} />;
-                    case BlockType.IMAGE_CAROUSEL:
-                        return <PublicImageCarouselBlock key={block.id} block={block} />;
-                    default:
-                      return null;
-                  }
-                })}
-              </div>
+    <div className="w-full min-h-screen bg-cover bg-center relative" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1536566482680-fca31930a085?q=80&w=1920&auto=format&fit=crop')" }}>
+        <div className="w-full min-h-screen bg-gray-900/80 backdrop-blur-sm">
+            <div className="w-full max-w-sm mx-auto px-4 py-10">
+                 <div className="flex flex-col items-center space-y-4">
+                    <img src={profile.avatarUrl} alt="Profile" className="w-24 h-24 rounded-full border-4 border-gray-600 shadow-lg" />
+                    <h2 className="text-2xl font-bold text-white">{profile.username}</h2>
+                    <p className="text-center text-gray-300 text-sm">{profile.bio}</p>
+                    
+                    <div className="w-full space-y-4 pt-4">
+                      {blocks.map(block => {
+                        switch (block.type) {
+                          case BlockType.SOCIALS:
+                            return <PublicSocialsBlock key={block.id} block={block} />;
+                          case BlockType.LINK:
+                            return <PublicLinkBlock key={block.id} block={block} onLinkClick={onLinkClick} />;
+                          case BlockType.SHOP:
+                            return <PublicShopBlock key={block.id} block={block} />;
+                          case BlockType.SEARCH:
+                            return <PublicSearchBlock key={block.id} block={block} />;
+                          case BlockType.TEXT:
+                              return <PublicTextBlock key={block.id} block={block} />;
+                          case BlockType.IMAGE:
+                              return <PublicImageBlock key={block.id} block={block} />;
+                          case BlockType.VIDEO:
+                              return <PublicVideoBlock key={block.id} block={block} />;
+                          case BlockType.BUTTON:
+                              return <PublicButtonBlock key={block.id} block={block} onLinkClick={onLinkClick} />;
+                          case BlockType.IMAGE_CAROUSEL:
+                              return <PublicImageCarouselBlock key={block.id} block={block} />;
+                          default:
+                            return null;
+                        }
+                      })}
+                    </div>
+                </div>
             </div>
-          </div>
-          {chatbotEnabled && chatbotProfile && <ChatbotWidget profile={chatbotProfile} />}
         </div>
-      </div>
+        {chatbotEnabled && chatbotProfile && <ChatbotWidget profile={chatbotProfile} />}
     </div>
   );
 };
