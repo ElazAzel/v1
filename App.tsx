@@ -1,0 +1,194 @@
+
+import React, { useState } from 'react';
+import { Block, BlockType, LinkBlock, ShopBlock, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialPlatform, ButtonBlock } from './types';
+import { EditorPanel } from './components/EditorPanel';
+import { PreviewPanel } from './components/PreviewPanel';
+import { EyeIcon, PencilIcon } from './components/Icons';
+
+const initialBlocks: Block[] = [
+  {
+    id: 'socials-1',
+    type: BlockType.SOCIALS,
+    links: [
+      { id: 's1', platform: SocialPlatform.TWITTER, url: 'https://x.com/google' },
+      { id: 's2', platform: SocialPlatform.GITHUB, url: 'https://github.com/google' },
+      { id: 's3', platform: SocialPlatform.INSTAGRAM, url: 'https://instagram.com/google' },
+    ],
+  },
+  { id: '1', type: BlockType.LINK, title: 'Мое портфолио', url: 'https://example.com', clicks: 102 },
+  { id: 'text-1', type: BlockType.TEXT, content: 'Я Frontend-разработчик и создатель цифровых продуктов. Здесь вы найдете все мои проекты, ссылки и продукты.'},
+  {
+    id: 'carousel-1',
+    type: BlockType.IMAGE_CAROUSEL,
+    images: [
+        { id: 'c1', url: 'https://images.unsplash.com/photo-1606240724602-5b21f894590c?q=80&w=800' },
+        { id: 'c2', url: 'https://images.unsplash.com/photo-1593349480503-685d1a4a4f36?q=80&w=800' },
+        { id: 'c3', url: 'https://images.unsplash.com/photo-1617053315000-22f275e7a25c?q=80&w=800' },
+    ]
+  },
+  { 
+    id: 'button-1', 
+    type: BlockType.BUTTON, 
+    text: 'Связаться со мной', 
+    url: 'mailto:example@example.com', 
+    clicks: 42, 
+    style: {
+      type: 'fill', 
+      backgroundColor: '#818cf8', 
+      textColor: '#ffffff',
+      hover: {
+        shadow: 'lg',
+        scale: 'sm',
+        backgroundColor: '#6366f1'
+      }
+    }
+  },
+  {
+    id: '3',
+    type: BlockType.SHOP,
+    title: 'Мои цифровые продукты',
+    products: [
+      { id: 'p1', name: 'Книга "Искусство кода"', price: 19.99, description: 'Глубокое погружение в мастерство разработки.', imageUrl: 'https://picsum.photos/seed/product1/400' },
+      { id: 'p2', name: 'UI Kit Pro', price: 49.00, description: 'Ускорьте свой рабочий процесс.', imageUrl: 'https://picsum.photos/seed/product2/400' },
+    ],
+  },
+];
+
+const App: React.FC = () => {
+  const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
+  const [profile, setProfile] = useState<Profile>({
+      avatarUrl: 'https://picsum.photos/128',
+      username: '@elazart',
+      bio: 'Добро пожаловать! Все мои ссылки и проекты ниже.',
+  });
+  const [chatbotProfile, setChatbotProfile] = useState<ChatbotProfile | null>({
+    type: 'person',
+    name: 'Elazart',
+    details: 'Frontend-разработчик и создатель цифровых продуктов. Я специализируюсь на создании красивых и функциональных пользовательских интерфейсов с использованием React и TypeScript.',
+    additionalInfo: 'Я автор книги "Искусство кода" и создатель "UI Kit Pro", которые вы можете найти в моем магазине на этой странице. Также я веду блог о веб-разработке и делюсь своими проектами на GitHub.',
+  });
+  const [chatbotEnabled, setChatbotEnabled] = useState(true);
+  const [isPremium, setIsPremium] = useState(false); // Для демонстрации. Поменяйте на true, чтобы увидеть премиум-функции.
+  const [userRole, setUserRole] = useState<UserRole>(UserRole.CLIENT);
+  const [mobileView, setMobileView] = useState<'editor' | 'preview'>('preview');
+  const [seoConfig, setSeoConfig] = useState<SeoConfig>({
+    title: '@elazart | Личная страница',
+    description: 'Добро пожаловать на мою личную страницу! Здесь вы найдете все мои проекты, ссылки и продукты.',
+    keywords: ['личная страница', 'портфолио', 'проекты', 'elazart'],
+  });
+
+
+  const addBlock = (type: BlockType) => {
+    const newId = Date.now().toString();
+    let newBlock: Block;
+    switch (type) {
+      case BlockType.LINK:
+        newBlock = { id: newId, type: BlockType.LINK, title: 'Новая ссылка', url: '', clicks: 0 };
+        break;
+      case BlockType.SHOP:
+        newBlock = { id: newId, type: BlockType.SHOP, title: 'Мой магазин', products: [] };
+        break;
+      case BlockType.SEARCH:
+        newBlock = { id: newId, type: BlockType.SEARCH, title: 'Поиск в реальном времени' };
+        break;
+      case BlockType.TEXT:
+        newBlock = { id: newId, type: BlockType.TEXT, content: 'Введите здесь свой текст...' };
+        break;
+      case BlockType.IMAGE:
+        newBlock = { id: newId, type: BlockType.IMAGE, url: '', caption: '' };
+        break;
+      case BlockType.VIDEO:
+        newBlock = { id: newId, type: BlockType.VIDEO, url: '' };
+        break;
+      case BlockType.BUTTON:
+        newBlock = { id: newId, type: BlockType.BUTTON, text: 'Нажми меня', url: '', clicks: 0, style: { type: 'fill', backgroundColor: '#6366f1', textColor: '#ffffff', hover: { shadow: 'none', scale: 'none', backgroundColor: '#4f46e5' } } };
+        break;
+      case BlockType.IMAGE_CAROUSEL:
+        newBlock = { id: newId, type: BlockType.IMAGE_CAROUSEL, images: [] };
+        break;
+      default:
+        return;
+    }
+    setBlocks(prev => [...prev, newBlock]);
+  };
+
+  const updateBlock = (id: string, updates: Partial<Block>) => {
+    setBlocks(prev => prev.map(block => (block.id === id ? { ...block, ...updates } as Block : block)));
+  };
+
+  const removeBlock = (id: string) => {
+    setBlocks(prev => prev.filter(block => block.id !== id));
+  };
+  
+  const reorderBlocks = (draggedId: string, targetId: string) => {
+    setBlocks(prev => {
+        const draggedIndex = prev.findIndex(b => b.id === draggedId);
+        const targetIndex = prev.findIndex(b => b.id === targetId);
+        if (draggedIndex === -1 || targetIndex === -1) return prev;
+
+        const newBlocks = [...prev];
+        const [draggedItem] = newBlocks.splice(draggedIndex, 1);
+        newBlocks.splice(targetIndex, 0, draggedItem);
+        return newBlocks;
+    });
+  };
+
+  const handleLinkClick = (id: string) => {
+    setBlocks(prev => prev.map(block => {
+        if (block.id === id && (block.type === BlockType.LINK || block.type === BlockType.BUTTON)) {
+            return { ...block, clicks: (block.clicks || 0) + 1 };
+        }
+        return block;
+    }));
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col md:flex-row">
+      <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800/70 backdrop-blur-sm p-2 rounded-full flex gap-2 border border-gray-600">
+        <button
+          onClick={() => setMobileView('preview')}
+          className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition-colors ${
+            mobileView === 'preview' ? 'bg-indigo-600 text-white' : 'text-gray-300'
+          }`}
+        >
+          <EyeIcon className="w-5 h-5" /> Просмотр
+        </button>
+        <button
+          onClick={() => setMobileView('editor')}
+          className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition-colors ${
+            mobileView === 'editor' ? 'bg-indigo-600 text-white' : 'text-gray-300'
+          }`}
+        >
+          <PencilIcon className="w-5 h-5" /> Редактор
+        </button>
+      </div>
+
+      <div className={`w-full md:w-1/3 ${mobileView !== 'preview' && 'hidden'} md:!flex`}>
+        <PreviewPanel profile={profile} blocks={blocks} chatbotProfile={chatbotProfile} chatbotEnabled={chatbotEnabled && isPremium} onLinkClick={handleLinkClick} />
+      </div>
+
+      <div className={`w-full md:w-2/3 ${mobileView !== 'editor' && 'hidden'} md:!flex`}>
+        <EditorPanel 
+          profile={profile}
+          setProfile={setProfile}
+          blocks={blocks}
+          addBlock={addBlock}
+          updateBlock={updateBlock}
+          removeBlock={removeBlock}
+          reorderBlocks={reorderBlocks}
+          chatbotProfile={chatbotProfile}
+          chatbotEnabled={chatbotEnabled}
+          isPremium={isPremium}
+          setChatbotProfile={setChatbotProfile}
+          setChatbotEnabled={setChatbotEnabled}
+          userRole={userRole}
+          setUserRole={setUserRole}
+          seoConfig={seoConfig}
+          setSeoConfig={setSeoConfig}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default App;
