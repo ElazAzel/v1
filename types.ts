@@ -30,6 +30,10 @@ export enum SocialPlatform {
   GITHUB = 'github',
   TELEGRAM = 'telegram',
   LINKEDIN = 'linkedin',
+  FACEBOOK = 'facebook',
+  TIKTOK = 'tiktok',
+  YOUTUBE = 'youtube',
+  THREADS = 'threads',
 }
 
 export interface SocialLink {
@@ -120,6 +124,7 @@ export interface Profile {
   username: string;
   bio: string;
   handle: string;
+  avatarFrameId?: string;
 }
 
 export interface ChatbotProfile {

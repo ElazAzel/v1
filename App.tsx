@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialPlatform, ButtonBlock } from './types';
 import { EditorPanel } from './components/EditorPanel';
 import { PreviewPanel } from './components/PreviewPanel';
@@ -10,9 +10,10 @@ const initialBlocks: Block[] = [
     id: 'socials-1',
     type: BlockType.SOCIALS,
     links: [
-      { id: 's1', platform: SocialPlatform.TWITTER, url: 'https://x.com/google' },
-      { id: 's2', platform: SocialPlatform.GITHUB, url: 'https://github.com/google' },
-      { id: 's3', platform: SocialPlatform.INSTAGRAM, url: 'https://instagram.com/google' },
+      { id: 's1', platform: SocialPlatform.INSTAGRAM, url: 'https://instagram.com/google' },
+      { id: 's2', platform: SocialPlatform.TELEGRAM, url: 'https://t.me/google' },
+      { id: 's3', platform: SocialPlatform.YOUTUBE, url: 'https://youtube.com/google' },
+      { id: 's4', platform: SocialPlatform.TIKTOK, url: 'https://tiktok.com/@google' },
     ],
   },
   { id: '1', type: BlockType.LINK, title: 'Мое портфолио', url: 'https://example.com', clicks: 102 },
@@ -87,6 +88,7 @@ const App: React.FC = () => {
       username: '@elazart',
       bio: 'Добро пожаловать! Все мои ссылки и проекты ниже.',
       handle: 'elazart',
+      avatarFrameId: '',
   });
   const [chatbotProfile, setChatbotProfile] = useState<ChatbotProfile | null>({
     type: 'person',
@@ -104,6 +106,17 @@ const App: React.FC = () => {
     keywords: ['личная страница', 'портфолио', 'проекты', 'elazart'],
   });
   const [isPublicView, setIsPublicView] = useState(false);
+
+  const pageStateRef = useRef<PageData>();
+  useEffect(() => {
+    pageStateRef.current = {
+      profile,
+      blocks,
+      chatbotProfile,
+      chatbotEnabled,
+      seoConfig
+    };
+  });
 
   useEffect(() => {
     // Logic for 7-day premium trial
@@ -129,11 +142,13 @@ const App: React.FC = () => {
         setTrialInfo({ isActive: false, daysLeft: 0 });
     }
 
-    // Logic for loading shared pages
+    // Logic for loading shared pages or from local storage
+    let loadedFromUrl = false;
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const dataParam = urlParams.get('data');
 
+      // FIX: Ensure dataParam is not null before calling decompressFromBase64 to prevent potential errors.
       if (dataParam) {
         const jsonString = decompressFromBase64(dataParam);
         if (jsonString) {
@@ -149,6 +164,7 @@ const App: React.FC = () => {
             setChatbotEnabled(pageData.chatbotEnabled);
             setSeoConfig(pageData.seoConfig);
             setIsPublicView(true);
+            loadedFromUrl = true;
             document.title = pageData.seoConfig.title || 'Bio Page';
           }
         }
@@ -156,6 +172,37 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Failed to load page data from URL:", error);
     }
+
+    if (!loadedFromUrl) {
+        try {
+            const savedDataString = localStorage.getItem('linkmax_autosave_data');
+            if (savedDataString) {
+                const pageData: PageData = JSON.parse(savedDataString);
+                if (pageData.profile && pageData.blocks && pageData.seoConfig) {
+                    const loadedProfile = pageData.profile;
+                    if (!loadedProfile.handle) {
+                        loadedProfile.handle = sanitizeHandle(loadedProfile.username);
+                    }
+                    setProfile(loadedProfile);
+                    setBlocks(pageData.blocks);
+                    setChatbotProfile(pageData.chatbotProfile);
+                    setChatbotEnabled(pageData.chatbotEnabled);
+                    setSeoConfig(pageData.seoConfig);
+                }
+            }
+        } catch(error) {
+            console.error("Failed to load page data from localStorage:", error);
+            localStorage.removeItem('linkmax_autosave_data');
+        }
+    }
+
+    const intervalId = setInterval(() => {
+        if (!loadedFromUrl && pageStateRef.current) {
+            localStorage.setItem('linkmax_autosave_data', JSON.stringify(pageStateRef.current));
+        }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, Product, ShopBlock, ChatbotProfile, SearchBlock, Profile, SocialsBlock, SocialPlatform, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage } from '../types';
-import { ShoppingCartIcon, SearchIcon, SendIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, GlobeIcon, ShareIcon } from './Icons';
+import { ShoppingCartIcon, SearchIcon, SendIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, GlobeIcon, ShareIcon, FacebookIcon, TiktokIcon, YoutubeIcon, ThreadsIcon } from './Icons';
 import { ChatbotWidget } from './ChatbotWidget';
 import * as geminiService from '../services/geminiService';
 
@@ -32,6 +32,65 @@ const parseCustomStyles = (styleString?: string): React.CSSProperties => {
     }
 };
 
+const RenderAvatarFrame: React.FC<{ frameId: string }> = ({ frameId }) => {
+    const frameProps = {
+        className: "absolute inset-0 w-full h-full pointer-events-none",
+        // FIX: Changed 'aria-hidden' value to boolean to match 'Booleanish' type
+        'aria-hidden': true
+    };
+
+    if (frameId.startsWith('#')) {
+        return (
+            <div 
+                {...frameProps} 
+                className="absolute inset-0 rounded-full border-4 shadow-lg"
+                style={{ borderColor: frameId }}
+            ></div>
+        );
+    }
+
+    switch (frameId) {
+        case 'chroma-spin':
+            return (
+                <div {...frameProps} style={{ animation: 'rotate-gradient 8s linear infinite' }}>
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="48" stroke="url(#chroma-gradient)" strokeWidth="4" />
+                        <defs>
+                            {/* FIX: Use React.createElement for non-standard SVG element to avoid TypeScript error. */}
+                            {React.createElement('conicGradient', { id: 'chroma-gradient', from: '0deg', at: '50% 50%' },
+                                <React.Fragment key="stops">
+                                    <stop offset="0%" stopColor="#818cf8"/>
+                                    <stop offset="25%" stopColor="#a78bfa"/>
+                                    <stop offset="50%" stopColor="#f472b6"/>
+                                    <stop offset="75%" stopColor="#fbbf24"/>
+                                    <stop offset="100%" stopColor="#818cf8"/>
+                                </React.Fragment>
+                            )}
+                        </defs>
+                    </svg>
+                </div>
+            );
+        case 'aura-pulse':
+            return (
+                <svg {...frameProps} width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="47" stroke="#a78bfa" style={{ animation: 'pulse-glow 3s ease-in-out infinite' }} />
+                </svg>
+            );
+        case 'glitch-tech':
+            return (
+                <div {...frameProps}>
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="48" stroke="#00ffff" strokeWidth="2" style={{ animation: 'glitch-anim-1 2s linear infinite' }} />
+                        <circle cx="50" cy="50" r="48" stroke="#ff00ff" strokeWidth="2" style={{ animation: 'glitch-anim-2 3s linear infinite' }}/>
+                        <circle cx="50" cy="50" r="48" stroke="white" strokeWidth="1" />
+                    </svg>
+                </div>
+            );
+        default:
+            return null;
+    }
+};
+
 
 const SocialIcon: React.FC<{ platform: SocialPlatform }> = ({ platform }) => {
     const className = "w-6 h-6 text-gray-300 hover:text-white transition-colors";
@@ -41,6 +100,10 @@ const SocialIcon: React.FC<{ platform: SocialPlatform }> = ({ platform }) => {
         case SocialPlatform.GITHUB: return <GithubIcon className={className} />;
         case SocialPlatform.TELEGRAM: return <TelegramIcon className={className} />;
         case SocialPlatform.LINKEDIN: return <LinkedinIcon className={className} />;
+        case SocialPlatform.FACEBOOK: return <FacebookIcon className={className} />;
+        case SocialPlatform.TIKTOK: return <TiktokIcon className={className} />;
+        case SocialPlatform.YOUTUBE: return <YoutubeIcon className={className} />;
+        case SocialPlatform.THREADS: return <ThreadsIcon className={className} />;
         default: return <GlobeIcon className={className} />;
     }
 };
@@ -460,7 +523,14 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ profile, blocks, cha
         <div className="w-full min-h-screen bg-gray-900/80 backdrop-blur-sm">
             <div className="w-full max-w-sm mx-auto px-4 py-10">
                  <div className="flex flex-col items-center space-y-4">
-                    <img src={profile.avatarUrl} alt="Profile" className="w-24 h-24 rounded-full border-4 border-gray-600 shadow-lg" />
+                    <div className="relative w-24 h-24">
+                        <img 
+                            src={profile.avatarUrl} 
+                            alt="Profile" 
+                            className="w-full h-full rounded-full object-cover border-4 border-gray-600 shadow-lg transition-transform duration-300 hover:scale-105" 
+                        />
+                        {profile.avatarFrameId && <RenderAvatarFrame frameId={profile.avatarFrameId} />}
+                    </div>
                     <h2 className="text-2xl font-bold text-white">{profile.username}</h2>
                     <p className="text-center text-gray-300 text-sm">{profile.bio}</p>
                     

@@ -27,7 +27,7 @@ export const generateLinkTitles = async (currentTitle: string, url: string): Pro
   return callGeminiApi(async () => {
     const response = await ai.models.generateContent({
       // FIX: Updated deprecated model name.
-      model: "gemini-flash-lite-latest",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -66,7 +66,7 @@ export const generateProductDescription = async (productName: string, price: num
   return callGeminiApi(async () => {
     const response = await ai.models.generateContent({
       // FIX: Updated deprecated model name.
-      model: "gemini-flash-lite-latest",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
     return response.text;
@@ -80,7 +80,7 @@ export const getChatbotResponse = async (question: string, profile: string): Pro
   return callGeminiApi(async () => {
     const response = await ai.models.generateContent({
       // FIX: Updated deprecated model name.
-      model: "gemini-flash-lite-latest",
+      model: "gemini-2.5-flash",
       contents: `Пользователь спросил: "${question}"`,
       config: {
         systemInstruction: `Ты — полезный, дружелюбный и слегка неформальный ассистент владельца этой страницы. Твоя задача — отвечать на вопросы пользователей, основываясь СТРОГО на предоставленной информации. Твои ответы должны быть короткими и по делу, в идеале — не длиннее 2-3 предложений. Если вопрос выходит за рамки известной тебе информации, вежливо ответь: "У меня нет такой информации, но вы можете связаться с ним/ней напрямую, чтобы уточнить!". Всегда отвечай на русском языке.\n\nПРОФИЛЬ:\n${profile}`,
@@ -96,7 +96,7 @@ export const getSearchResults = async (query: string): Promise<{ text: string; s
   return callGeminiApi(async () => {
     const response = await ai.models.generateContent({
       // FIX: Updated deprecated model name.
-      model: "gemini-flash-lite-latest",
+      model: "gemini-2.5-flash",
       contents: query,
       config: {
         tools: [{googleSearch: {}}],
