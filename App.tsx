@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialPlatform, ButtonBlock } from './types';
 import { EditorPanel } from './components/EditorPanel';
 import { PreviewPanel } from './components/PreviewPanel';
@@ -62,6 +62,11 @@ interface PageData {
   seoConfig: SeoConfig;
 }
 
+interface TrialInfo {
+  isActive: boolean;
+  daysLeft: number | null;
+}
+
 const App: React.FC = () => {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [profile, setProfile] = useState<Profile>({
@@ -76,7 +81,7 @@ const App: React.FC = () => {
     additionalInfo: 'Я автор книги "Искусство кода" и создатель "UI Kit Pro", которые вы можете найти в моем магазине на этой странице. Также я веду блог о веб-разработке и делюсь своими проектами на GitHub.',
   });
   const [chatbotEnabled, setChatbotEnabled] = useState(true);
-  const [isPremium, setIsPremium] = useState(false); // Для демонстрации. Поменяйте на true, чтобы увидеть премиум-функции.
+  const [trialInfo, setTrialInfo] = useState<TrialInfo>({ isActive: false, daysLeft: null });
   const [userRole, setUserRole] = useState<UserRole>(UserRole.CLIENT);
   const [mobileView, setMobileView] = useState<'editor' | 'preview'>('preview');
   const [seoConfig, setSeoConfig] = useState<SeoConfig>({
@@ -86,7 +91,31 @@ const App: React.FC = () => {
   });
   const [isPublicView, setIsPublicView] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
+    // Logic for 7-day premium trial
+    const REGISTRATION_DATE_KEY = 'userRegistrationDate';
+    let regDateString = localStorage.getItem(REGISTRATION_DATE_KEY);
+
+    if (!regDateString) {
+        regDateString = new Date().toISOString();
+        localStorage.setItem(REGISTRATION_DATE_KEY, regDateString);
+    }
+
+    const regDate = new Date(regDateString);
+    const now = new Date();
+    const trialEndDate = new Date(regDate);
+    trialEndDate.setDate(regDate.getDate() + 7);
+
+    const timeLeft = trialEndDate.getTime() - now.getTime();
+    
+    if (timeLeft > 0) {
+        const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
+        setTrialInfo({ isActive: true, daysLeft });
+    } else {
+        setTrialInfo({ isActive: false, daysLeft: 0 });
+    }
+
+    // Logic for loading shared pages
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const dataParam = urlParams.get('data');
@@ -109,7 +138,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Failed to load page data from URL:", error);
     }
-  });
+  }, []);
 
 
   const addBlock = (type: BlockType) => {
@@ -226,7 +255,7 @@ const App: React.FC = () => {
       </div>
 
       <div className={`w-full md:w-1/3 ${mobileView !== 'preview' && 'hidden'} md:!flex`}>
-        <PreviewPanel profile={profile} blocks={blocks} chatbotProfile={chatbotProfile} chatbotEnabled={chatbotEnabled && isPremium} onLinkClick={handleLinkClick} />
+        <PreviewPanel profile={profile} blocks={blocks} chatbotProfile={chatbotProfile} chatbotEnabled={chatbotEnabled && trialInfo.isActive} onLinkClick={handleLinkClick} />
       </div>
 
       <div className={`w-full md:w-2/3 ${mobileView !== 'editor' && 'hidden'} md:!flex`}>
@@ -240,7 +269,7 @@ const App: React.FC = () => {
           reorderBlocks={reorderBlocks}
           chatbotProfile={chatbotProfile}
           chatbotEnabled={chatbotEnabled}
-          isPremium={isPremium}
+          isPremium={trialInfo.isActive}
           setChatbotProfile={setChatbotProfile}
           setChatbotEnabled={setChatbotEnabled}
           userRole={userRole}
@@ -248,6 +277,7 @@ const App: React.FC = () => {
           seoConfig={seoConfig}
           setSeoConfig={setSeoConfig}
           importPageData={importPageData}
+          trialInfo={trialInfo}
         />
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, Product, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialsBlock, SocialPlatform, SocialLink, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage } from '../types';
-import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon, Share2Icon } from './Icons';
+import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon, Share2Icon, GiftIcon } from './Icons';
 import * as geminiService from '../services/geminiService';
 import { compressToBase64 } from '../utils/compression';
 
@@ -882,6 +882,7 @@ interface EditorPanelProps {
   seoConfig: SeoConfig;
   setSeoConfig: (config: SeoConfig | ((prev: SeoConfig) => SeoConfig)) => void;
   importPageData: (data: any) => boolean;
+  trialInfo: { isActive: boolean; daysLeft: number | null };
 }
 
 const MAX_FREE_BLOCKS = 5;
@@ -902,11 +903,46 @@ const BlockIcon: React.FC<{ type: BlockType }> = ({ type }) => {
     }
 };
 
+const TrialStatusBanner: React.FC<{ trialInfo: {isActive: boolean; daysLeft: number | null} }> = ({ trialInfo }) => {
+    if (trialInfo.daysLeft === null) {
+        return null;
+    }
+
+    const pluralizeDays = (days: number) => {
+        const cases = [2, 0, 1, 1, 1, 2];
+        const titles = ['день', 'дня', 'дней'];
+        return titles[(days % 100 > 4 && days % 100 < 20) ? 2 : cases[(days % 10 < 5) ? days % 10 : 5]];
+    }
+
+    if (trialInfo.isActive) {
+        return (
+            <div className="bg-indigo-900/50 border border-indigo-500/50 p-3 rounded-lg flex items-center gap-3 text-sm mb-6">
+                <GiftIcon className="w-6 h-6 text-indigo-400 flex-shrink-0" />
+                <div>
+                    <p className="font-bold text-white">У вас активен премиум-доступ!</p>
+                    <p className="text-indigo-200">Осталось {trialInfo.daysLeft} {pluralizeDays(trialInfo.daysLeft)}. Пользуйтесь всеми возможностями.</p>
+                </div>
+            </div>
+        );
+    } else {
+        return (
+            <div className="bg-yellow-900/30 border border-yellow-500/50 p-3 rounded-lg flex items-center gap-3 text-sm mb-6">
+                <LockIcon className="w-6 h-6 text-yellow-400 flex-shrink-0" />
+                <div>
+                    <p className="font-bold text-white">Ваш пробный период истек</p>
+                    <p className="text-yellow-200/80">Перейдите на платный тариф, чтобы сохранить премиум-функции.</p>
+                </div>
+                <button className="ml-auto bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-1.5 px-4 rounded-md whitespace-nowrap">Обновить</button>
+            </div>
+        )
+    }
+};
+
 export const EditorPanel: React.FC<EditorPanelProps> = ({
   profile, setProfile,
   blocks, addBlock, updateBlock, removeBlock, reorderBlocks,
   chatbotProfile, chatbotEnabled, isPremium, setChatbotProfile, setChatbotEnabled,
-  userRole, setUserRole, seoConfig, setSeoConfig, importPageData,
+  userRole, setUserRole, seoConfig, setSeoConfig, importPageData, trialInfo
 }) => {
     const [activeTab, setActiveTab] = useState<'content' | 'settings' | 'analytics'>('content');
     const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
@@ -1098,6 +1134,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         </div>
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <TrialStatusBanner trialInfo={trialInfo} />
         {userRole === UserRole.ADMIN && (
             <div className="mb-6 p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg">
                 <h3 className="text-xl font-bold text-yellow-400 mb-2 flex items-center gap-2">
