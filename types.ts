@@ -116,6 +116,7 @@ export interface Profile {
   avatarUrl: string;
   username: string;
   bio: string;
+  handle: string;
 }
 
 export interface ChatbotProfile {

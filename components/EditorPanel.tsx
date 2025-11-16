@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, Product, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialsBlock, SocialPlatform, SocialLink, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage } from '../types';
 import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon, Share2Icon, GiftIcon } from './Icons';
@@ -90,6 +91,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, setProfile }) =>
                         onChange={(e) => handleProfileChange('bio', e.target.value)}
                         className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white h-20 resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Ваш уникальный URL</label>
+                    <div className="flex items-center bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white overflow-hidden">
+                        <span className="text-gray-400">linkmax.bio/</span>
+                        <span className="font-semibold truncate">{profile.handle}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -582,7 +590,8 @@ const DropZone: React.FC<DropZoneProps> = ({ onDrop, acceptedMimeTypes, children
         setIsDraggingOver(false);
         const files = e.dataTransfer.files;
         if (files && files.length > 0) {
-            const acceptedFiles = Array.from(files).filter(file => 
+// FIX: Explicitly type 'file' as 'File' to resolve type inference issues.
+            const acceptedFiles = Array.from(files).filter((file: File) => 
                 acceptedMimeTypes.some(type => file.type.startsWith(type))
             );
             if (acceptedFiles.length > 0) {
@@ -1079,8 +1088,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         const pageData = { profile, blocks, chatbotProfile, chatbotEnabled, seoConfig };
         const jsonString = JSON.stringify(pageData);
         const compressedData = compressToBase64(jsonString);
-        const url = `${window.location.origin}${window.location.pathname}?data=${compressedData}`;
-        setShareUrl(url);
+        
+        const handle = profile.handle;
+
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('data', compressedData);
+        url.hash = `/p/${handle}`;
+
+        setShareUrl(url.toString());
         setIsLinkCopied(false);
         setIsShareModalOpen(true);
     };

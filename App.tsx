@@ -67,12 +67,26 @@ interface TrialInfo {
   daysLeft: number | null;
 }
 
+const sanitizeHandle = (username: string): string => {
+  if (!username) return '';
+  return username
+    .replace(/^@/, '') // remove leading @
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-') // replace spaces with hyphens
+    .replace(/[^a-z0-9-]/g, '') // remove invalid chars
+    .replace(/-+/g, '-') // collapse multiple dashes
+    .replace(/^-+|-+$/g, ''); // remove leading/trailing dashes
+};
+
+
 const App: React.FC = () => {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [profile, setProfile] = useState<Profile>({
       avatarUrl: 'https://picsum.photos/128',
       username: '@elazart',
       bio: 'Добро пожаловать! Все мои ссылки и проекты ниже.',
+      handle: 'elazart',
   });
   const [chatbotProfile, setChatbotProfile] = useState<ChatbotProfile | null>({
     type: 'person',
@@ -83,7 +97,7 @@ const App: React.FC = () => {
   const [chatbotEnabled, setChatbotEnabled] = useState(true);
   const [trialInfo, setTrialInfo] = useState<TrialInfo>({ isActive: false, daysLeft: null });
   const [userRole, setUserRole] = useState<UserRole>(UserRole.CLIENT);
-  const [mobileView, setMobileView] = useState<'editor' | 'preview'>('preview');
+  const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
   const [seoConfig, setSeoConfig] = useState<SeoConfig>({
     title: '@elazart | Личная страница',
     description: 'Добро пожаловать на мою личную страницу! Здесь вы найдете все мои проекты, ссылки и продукты.',
@@ -125,7 +139,11 @@ const App: React.FC = () => {
         if (jsonString) {
           const pageData: PageData = JSON.parse(jsonString);
           if (pageData.profile && pageData.blocks && pageData.seoConfig) {
-            setProfile(pageData.profile);
+            const loadedProfile = pageData.profile;
+            if (!loadedProfile.handle) {
+              loadedProfile.handle = sanitizeHandle(loadedProfile.username);
+            }
+            setProfile(loadedProfile);
             setBlocks(pageData.blocks);
             setChatbotProfile(pageData.chatbotProfile);
             setChatbotEnabled(pageData.chatbotEnabled);
@@ -139,6 +157,13 @@ const App: React.FC = () => {
       console.error("Failed to load page data from URL:", error);
     }
   }, []);
+
+  useEffect(() => {
+    const newHandle = sanitizeHandle(profile.username);
+    if (newHandle !== profile.handle) {
+        setProfile(prev => ({ ...prev, handle: newHandle }));
+    }
+  }, [profile.username, profile.handle]);
 
 
   const addBlock = (type: BlockType) => {
@@ -207,7 +232,11 @@ const App: React.FC = () => {
 
   const importPageData = (data: PageData): boolean => {
     if (data.profile && data.blocks && data.seoConfig) {
-      setProfile(data.profile);
+      const importedProfile = data.profile;
+      if (!importedProfile.handle) {
+          importedProfile.handle = sanitizeHandle(importedProfile.username);
+      }
+      setProfile(importedProfile);
       setBlocks(data.blocks);
       setChatbotProfile(data.chatbotProfile);
       setChatbotEnabled(data.chatbotEnabled);
@@ -234,32 +263,27 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col md:flex-row">
-      <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800/70 backdrop-blur-sm p-2 rounded-full flex gap-2 border border-gray-600">
-        <button
-          onClick={() => setMobileView('preview')}
-          className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition-colors ${
-            mobileView === 'preview' ? 'bg-indigo-600 text-white' : 'text-gray-300'
-          }`}
-        >
-          <EyeIcon className="w-5 h-5" /> Просмотр
-        </button>
-        <button
-          onClick={() => setMobileView('editor')}
-          className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition-colors ${
-            mobileView === 'editor' ? 'bg-indigo-600 text-white' : 'text-gray-300'
-          }`}
-        >
-          <PencilIcon className="w-5 h-5" /> Редактор
-        </button>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <button
+        onClick={() => setViewMode(prev => (prev === 'editor' ? 'preview' : 'editor'))}
+        className="fixed bottom-6 right-6 z-50 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-indigo-500"
+        aria-label={viewMode === 'editor' ? 'Переключиться на просмотр' : 'Переключиться на редактор'}
+      >
+        {viewMode === 'editor' ? <EyeIcon className="w-6 h-6" /> : <PencilIcon className="w-6 h-6" />}
+      </button>
+
+      <div className={viewMode === 'preview' ? 'block' : 'hidden'}>
+        <PreviewPanel
+          profile={profile}
+          blocks={blocks}
+          chatbotProfile={chatbotProfile}
+          chatbotEnabled={chatbotEnabled && trialInfo.isActive}
+          onLinkClick={handleLinkClick}
+        />
       </div>
 
-      <div className={`w-full md:w-1/3 ${mobileView !== 'preview' && 'hidden'} md:!flex`}>
-        <PreviewPanel profile={profile} blocks={blocks} chatbotProfile={chatbotProfile} chatbotEnabled={chatbotEnabled && trialInfo.isActive} onLinkClick={handleLinkClick} />
-      </div>
-
-      <div className={`w-full md:w-2/3 ${mobileView !== 'editor' && 'hidden'} md:!flex`}>
-        <EditorPanel 
+      <div className={viewMode === 'editor' ? 'block' : 'hidden'}>
+        <EditorPanel
           profile={profile}
           setProfile={setProfile}
           blocks={blocks}
