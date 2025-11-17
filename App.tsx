@@ -150,6 +150,7 @@ const App: React.FC = () => {
 
       // FIX: Ensure dataParam is not null before calling decompressFromBase64 to prevent potential errors.
       if (dataParam) {
+        // FIX: Expected 1 arguments, but got 0.
         const jsonString = decompressFromBase64(dataParam);
         if (jsonString) {
           const pageData: PageData = JSON.parse(jsonString);
@@ -326,6 +327,8 @@ const App: React.FC = () => {
           chatbotProfile={chatbotProfile}
           chatbotEnabled={chatbotEnabled && trialInfo.isActive}
           onLinkClick={handleLinkClick}
+          reorderBlocks={reorderBlocks}
+          isEditor={true}
         />
       </div>
 

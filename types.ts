@@ -95,12 +95,16 @@ export interface ButtonBlock extends BaseBlock {
   url: string;
   clicks: number;
   style: {
-    type: 'fill' | 'image';
+    type: 'fill' | 'image' | 'gradient';
     backgroundColor?: string;
     textColor?: string;
     imageUrl?: string;
+    gradientStartColor?: string;
+    gradientEndColor?: string;
+    gradientAngle?: number;
     hover?: {
-      shadow?: 'none' | 'sm' | 'md' | 'lg';
+      shadow?: 'none' | 'sm' | 'md' | 'lg' | 'glow';
+      glowColor?: string;
       scale?: 'none' | 'sm' | 'md';
       backgroundColor?: string;
     };

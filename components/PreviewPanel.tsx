@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, Product, ShopBlock, ChatbotProfile, SearchBlock, Profile, SocialsBlock, SocialPlatform, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage } from '../types';
 import { ShoppingCartIcon, SearchIcon, SendIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, GlobeIcon, ShareIcon, FacebookIcon, TiktokIcon, YoutubeIcon, ThreadsIcon } from './Icons';
@@ -417,6 +418,11 @@ const PublicButtonBlock: React.FC<{ block: ButtonBlock, onLinkClick: (id: string
         baseStyle.backgroundSize = 'cover';
         baseStyle.backgroundPosition = 'center';
         baseStyle.textShadow = '0px 1px 4px rgba(0, 0, 0, 0.5)';
+    } else if (block.style.type === 'gradient') {
+        const angle = block.style.gradientAngle ?? 90;
+        const startColor = block.style.gradientStartColor || '#818cf8';
+        const endColor = block.style.gradientEndColor || '#a78bfa';
+        baseStyle.backgroundImage = `linear-gradient(${angle}deg, ${startColor}, ${endColor})`;
     }
 
     const dynamicStyle: React.CSSProperties = { ...baseStyle, ...customStyles };
@@ -426,7 +432,28 @@ const PublicButtonBlock: React.FC<{ block: ButtonBlock, onLinkClick: (id: string
         dynamicStyle.backgroundColor = isHovered && block.style.hover?.backgroundColor
             ? block.style.hover.backgroundColor
             : block.style.backgroundColor;
+    } else {
+        dynamicStyle.color = block.style.textColor;
     }
+
+    if (isHovered && block.style.hover?.shadow === 'glow') {
+        const glowColor = block.style.hover.glowColor || '#a78bfa';
+        const hexToRgb = (hex: string) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        };
+        const rgb = hexToRgb(glowColor);
+        if (rgb) {
+            dynamicStyle.boxShadow = `0 0 15px 3px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`;
+        } else {
+             dynamicStyle.boxShadow = `0 0 15px 3px ${glowColor}`;
+        }
+    }
+
 
     const hoverClasses = {
         shadow: {
@@ -442,7 +469,10 @@ const PublicButtonBlock: React.FC<{ block: ButtonBlock, onLinkClick: (id: string
         }
     };
     
-    const shadowClass = hoverClasses.shadow[block.style.hover?.shadow || 'none'];
+    const shadowClass = block.style.hover?.shadow !== 'glow' 
+        ? hoverClasses.shadow[block.style.hover?.shadow as keyof typeof hoverClasses.shadow || 'none'] 
+        : '';
+
     const scaleClass = hoverClasses.scale[block.style.hover?.scale || 'none'];
 
     return (
@@ -515,15 +545,53 @@ interface PreviewPanelProps {
   chatbotProfile: ChatbotProfile | null;
   chatbotEnabled: boolean;
   onLinkClick: (id: string) => void;
+  reorderBlocks?: (draggedId: string, targetId: string) => void;
+  isEditor?: boolean;
 }
 
-export const PreviewPanel: React.FC<PreviewPanelProps> = ({ profile, blocks, chatbotProfile, chatbotEnabled, onLinkClick }) => {
+export const PreviewPanel: React.FC<PreviewPanelProps> = ({ profile, blocks, chatbotProfile, chatbotEnabled, onLinkClick, reorderBlocks, isEditor }) => {
+  const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
+    if (!isEditor || !reorderBlocks) return;
+    e.dataTransfer.effectAllowed = 'move';
+    document.body.classList.add('dragging');
+    setDraggedBlockId(id);
+  };
+  
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, id: string) => {
+    if (!isEditor || !reorderBlocks) return;
+    e.preventDefault();
+    if (id !== draggedBlockId) {
+        setDropTargetId(id);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, id: string) => {
+    if (!isEditor || !reorderBlocks) return;
+    e.preventDefault();
+    if (draggedBlockId && draggedBlockId !== id) {
+        reorderBlocks(draggedBlockId, id);
+    }
+  };
+  
+  const handleDragEnd = () => {
+    if (!isEditor || !reorderBlocks) return;
+    document.body.classList.remove('dragging');
+    setDraggedBlockId(null);
+    setDropTargetId(null);
+  };
+
   return (
     <div className="w-full min-h-screen bg-cover bg-center relative" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1536566482680-fca31930a085?q=80&w=1920&auto=format&fit=crop')" }}>
         <div className="w-full min-h-screen bg-gray-900/80 backdrop-blur-sm">
             <div className="w-full max-w-sm mx-auto px-4 py-10">
                  <div className="flex flex-col items-center space-y-4">
-                    <div className="relative w-24 h-24">
+                    <div 
+                        className="relative w-24 h-24 animate-fade-in-up" 
+                        style={{ animationDelay: '0ms' }}
+                    >
                         <img 
                             src={profile.avatarUrl} 
                             alt="Profile" 
@@ -531,33 +599,61 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ profile, blocks, cha
                         />
                         {profile.avatarFrameId && <RenderAvatarFrame frameId={profile.avatarFrameId} />}
                     </div>
-                    <h2 className="text-2xl font-bold text-white">{profile.username}</h2>
-                    <p className="text-center text-gray-300 text-sm">{profile.bio}</p>
+                    <h2 
+                        className="text-2xl font-bold text-white animate-fade-in-up"
+                        style={{ animationDelay: '100ms' }}
+                    >{profile.username}</h2>
+                    <p 
+                        className="text-center text-gray-300 text-sm animate-fade-in-up"
+                        style={{ animationDelay: '200ms' }}
+                    >{profile.bio}</p>
                     
                     <div className="w-full space-y-4 pt-4">
-                      {blocks.map(block => {
-                        switch (block.type) {
-                          case BlockType.SOCIALS:
-                            return <PublicSocialsBlock key={block.id} block={block} />;
-                          case BlockType.LINK:
-                            return <PublicLinkBlock key={block.id} block={block} onLinkClick={onLinkClick} />;
-                          case BlockType.SHOP:
-                            return <PublicShopBlock key={block.id} block={block} />;
-                          case BlockType.SEARCH:
-                            return <PublicSearchBlock key={block.id} block={block} />;
-                          case BlockType.TEXT:
-                              return <PublicTextBlock key={block.id} block={block} />;
-                          case BlockType.IMAGE:
-                              return <PublicImageBlock key={block.id} block={block} />;
-                          case BlockType.VIDEO:
-                              return <PublicVideoBlock key={block.id} block={block} />;
-                          case BlockType.BUTTON:
-                              return <PublicButtonBlock key={block.id} block={block} onLinkClick={onLinkClick} />;
-                          case BlockType.IMAGE_CAROUSEL:
-                              return <PublicImageCarouselBlock key={block.id} block={block} />;
-                          default:
-                            return null;
-                        }
+                      {blocks.map((block, index) => {
+                        const isDraggable = isEditor && block.type !== BlockType.SOCIALS;
+                        const blockContent = (() => {
+                          switch (block.type) {
+                            case BlockType.SOCIALS:
+                              return <PublicSocialsBlock key={block.id} block={block} />;
+                            case BlockType.LINK:
+                              return <PublicLinkBlock key={block.id} block={block} onLinkClick={onLinkClick} />;
+                            case BlockType.SHOP:
+                              return <PublicShopBlock key={block.id} block={block} />;
+                            case BlockType.SEARCH:
+                              return <PublicSearchBlock key={block.id} block={block} />;
+                            case BlockType.TEXT:
+                                return <PublicTextBlock key={block.id} block={block} />;
+                            case BlockType.IMAGE:
+                                return <PublicImageBlock key={block.id} block={block} />;
+                            case BlockType.VIDEO:
+                                return <PublicVideoBlock key={block.id} block={block} />;
+                            case BlockType.BUTTON:
+                                return <PublicButtonBlock key={block.id} block={block} onLinkClick={onLinkClick} />;
+                            case BlockType.IMAGE_CAROUSEL:
+                                return <PublicImageCarouselBlock key={block.id} block={block} />;
+                            default:
+                              return null;
+                          }
+                        })();
+
+                        return (
+                          <div
+                            key={block.id}
+                            onDragOver={isDraggable ? (e) => handleDragOver(e, block.id) : undefined}
+                            onDrop={isDraggable ? (e) => handleDrop(e, block.id) : undefined}
+                          >
+                            {dropTargetId === block.id && <div className="h-10 rounded-lg bg-indigo-500/20 border-2 border-dashed border-indigo-400 my-2" />}
+                            <div
+                              draggable={isDraggable}
+                              onDragStart={isDraggable ? (e) => handleDragStart(e, block.id) : undefined}
+                              onDragEnd={isDraggable ? handleDragEnd : undefined}
+                              className={`transition-opacity ${draggedBlockId === block.id ? 'opacity-30' : ''} ${isDraggable ? 'cursor-grab' : ''} animate-fade-in-up`}
+                              style={{ animationDelay: `${(index + 3) * 100}ms` }}
+                            >
+                              {blockContent}
+                            </div>
+                          </div>
+                        );
                       })}
                     </div>
                 </div>

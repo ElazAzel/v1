@@ -23,6 +23,22 @@
       .animate-fade-in-out {
         animation: fadeInOut 3s ease-in-out forwards;
       }
+      /* Animation for blocks */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        /* Start hidden, animation will make it visible */
+        opacity: 0;
+        animation: fadeInUp 0.5s ease-out forwards;
+      }
       /* Avatar Frame Animations */
       @keyframes rotate-gradient {
         0% { transform: rotate(0deg); }

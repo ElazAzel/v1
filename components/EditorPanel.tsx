@@ -1,8 +1,12 @@
 
 
+
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, Product, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialsBlock, SocialPlatform, SocialLink, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage, BaseBlock } from '../types';
-import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon, Share2Icon, GiftIcon, FacebookIcon, TiktokIcon, YoutubeIcon, ThreadsIcon } from './Icons';
+import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon, Share2Icon, GiftIcon, FacebookIcon, TiktokIcon, YoutubeIcon, ThreadsIcon, EyeIcon } from './Icons';
 import * as geminiService from '../services/geminiService';
 import { compressToBase64 } from '../utils/compression';
 
@@ -1006,7 +1010,7 @@ const ButtonBlockEditor: React.FC<ButtonBlockEditorProps> = ({ block, updateBloc
             
             <div className="p-3 bg-gray-900 rounded-md border border-gray-700 space-y-3">
                 <h4 className="text-sm font-semibold text-gray-300">Стиль кнопки</h4>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                     <button onClick={() => handleStyleChange({ type: 'fill' })} className={`flex-1 p-2 rounded-md text-sm ${block.style.type === 'fill' ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>Заливка</button>
                     <button 
                         onClick={() => isPremium && handleStyleChange({ type: 'image' })} 
@@ -1014,6 +1018,13 @@ const ButtonBlockEditor: React.FC<ButtonBlockEditorProps> = ({ block, updateBloc
                     >
                         {!isPremium && <LockIcon className="w-4 h-4" />}
                         Изображение
+                    </button>
+                    <button 
+                        onClick={() => isPremium && handleStyleChange({ type: 'gradient' })} 
+                        className={`flex-1 p-2 rounded-md text-sm relative flex items-center justify-center gap-2 ${block.style.type === 'gradient' ? 'bg-indigo-600 text-white' : 'bg-gray-700'} ${isPremium ? 'hover:bg-gray-600' : 'cursor-not-allowed text-gray-400'}`}
+                    >
+                        {!isPremium && <LockIcon className="w-4 h-4" />}
+                        Градиент
                     </button>
                 </div>
                 
@@ -1024,6 +1035,29 @@ const ButtonBlockEditor: React.FC<ButtonBlockEditorProps> = ({ block, updateBloc
                             <input type="color" value={block.style.backgroundColor || '#6366f1'} onChange={(e) => handleStyleChange({ backgroundColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
                         </div>
                         <div>
+                            <label className="text-xs text-gray-400">Цвет текста</label>
+                            <input type="color" value={block.style.textColor || '#ffffff'} onChange={(e) => handleStyleChange({ textColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
+                        </div>
+                    </div>
+                )}
+
+                {block.style.type === 'gradient' && isPremium && (
+                    <div className="space-y-3">
+                         <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-xs text-gray-400">Начальный цвет</label>
+                                <input type="color" value={block.style.gradientStartColor || '#818cf8'} onChange={(e) => handleStyleChange({ gradientStartColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400">Конечный цвет</label>
+                                <input type="color" value={block.style.gradientEndColor || '#a78bfa'} onChange={(e) => handleStyleChange({ gradientEndColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
+                            </div>
+                         </div>
+                         <div>
+                            <label className="text-xs text-gray-400">Угол ({block.style.gradientAngle ?? 90}°)</label>
+                            <input type="range" min="0" max="360" value={block.style.gradientAngle ?? 90} onChange={(e) => handleStyleChange({ gradientAngle: parseInt(e.target.value) })} className="w-full" />
+                         </div>
+                         <div>
                             <label className="text-xs text-gray-400">Цвет текста</label>
                             <input type="color" value={block.style.textColor || '#ffffff'} onChange={(e) => handleStyleChange({ textColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
                         </div>
@@ -1045,6 +1079,7 @@ const ButtonBlockEditor: React.FC<ButtonBlockEditorProps> = ({ block, updateBloc
                             <option value="sm">Маленькая</option>
                             <option value="md">Средняя</option>
                             <option value="lg">Большая</option>
+                            <option value="glow" disabled={!isPremium}>Свечение (Premium)</option>
                         </select>
                     </div>
                     <div>
@@ -1056,6 +1091,12 @@ const ButtonBlockEditor: React.FC<ButtonBlockEditorProps> = ({ block, updateBloc
                         </select>
                     </div>
                 </div>
+                {block.style.hover?.shadow === 'glow' && isPremium && (
+                     <div>
+                        <label className="text-xs text-gray-400">Цвет свечения</label>
+                        <input type="color" value={block.style.hover?.glowColor || '#a78bfa'} onChange={(e) => handleHoverChange({ glowColor: e.target.value })} className="w-full h-10 bg-transparent border-none cursor-pointer" />
+                    </div>
+                )}
                 {block.style.type === 'fill' && (
                     <div>
                         <label className="text-xs text-gray-400">Цвет фона при наведении</label>
@@ -1356,18 +1397,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         setImportData(null);
     };
 
-    const handleShare = () => {
+    const generatePageUrl = () => {
         const pageData = { profile, blocks, chatbotProfile, chatbotEnabled, seoConfig };
         const jsonString = JSON.stringify(pageData);
         const compressedData = compressToBase64(jsonString);
-        
         const handle = profile.handle;
-
         const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set('data', compressedData);
         url.hash = `/p/${handle}`;
+        return url.toString();
+    }
 
-        setShareUrl(url.toString());
+    const handlePreview = () => {
+        const url = generatePageUrl();
+        window.open(url, '_blank');
+    };
+
+    const handleShare = () => {
+        const url = generatePageUrl();
+        setShareUrl(url);
         setIsLinkCopied(false);
         setIsShareModalOpen(true);
     };
@@ -1398,6 +1446,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                         accept="application/json"
                         className="hidden"
                     />
+                    <button onClick={handlePreview} className="flex items-center gap-2 p-2 text-sm text-white bg-gray-700/50 hover:bg-gray-700 rounded-md transition-colors" title="Предпросмотр">
+                        <EyeIcon className="w-5 h-5"/>
+                        <span className="hidden sm:inline">Предпросмотр</span>
+                    </button>
                     <button onClick={handleShare} className="flex items-center gap-2 p-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors" title="Получить публичную ссылку">
                         <Share2Icon className="w-5 h-5"/>
                         <span className="hidden sm:inline">Публичная ссылка</span>
