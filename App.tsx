@@ -55,7 +55,22 @@ const initialBlocks: Block[] = [
   },
 ];
 
-interface PageData {
+const initialProfile: Profile = {
+    avatarUrl: 'https://picsum.photos/128',
+    username: '@elazart',
+    bio: 'Добро пожаловать! Все мои ссылки и проекты ниже.',
+    handle: 'elazart',
+    avatarFrameId: '',
+};
+
+const initialSeoConfig: SeoConfig = {
+    title: '@elazart | Личная страница',
+    description: 'Добро пожаловать на мою личную страницу! Здесь вы найдете все мои проекты, ссылки и продукты.',
+    keywords: ['личная страница', 'портфолио', 'проекты', 'elazart'],
+};
+
+
+export interface PageData {
   profile: Profile;
   blocks: Block[];
   chatbotProfile: ChatbotProfile | null;
@@ -80,46 +95,119 @@ const sanitizeHandle = (username: string): string => {
     .replace(/^-+|-+$/g, ''); // remove leading/trailing dashes
 };
 
+// Debounce utility
+const debounce = <F extends (...args: any[]) => any>(func: F, waitFor: number) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+  
+    const debounced = (...args: Parameters<F>) => {
+      if (timeout !== null) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      timeout = setTimeout(() => func(...args), waitFor);
+    };
+  
+    return debounced;
+};
+
 
 const App: React.FC = () => {
-  const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
-  const [profile, setProfile] = useState<Profile>({
-      avatarUrl: 'https://picsum.photos/128',
-      username: '@elazart',
-      bio: 'Добро пожаловать! Все мои ссылки и проекты ниже.',
-      handle: 'elazart',
-      avatarFrameId: '',
-  });
-  const [chatbotProfile, setChatbotProfile] = useState<ChatbotProfile | null>({
-    type: 'person',
-    name: 'Elazart',
-    details: 'Frontend-разработчик и создатель цифровых продуктов. Я специализируюсь на создании красивых и функциональных пользовательских интерфейсов с использованием React и TypeScript.',
-    additionalInfo: 'Я автор книги "Искусство кода" и создатель "UI Kit Pro", которые вы можете найти в моем магазине на этой странице. Также я веду блог о веб-разработке и делюсь своими проектами на GitHub.',
-  });
+  const [userId, setUserId] = useState<string | null>(null);
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [profile, setProfile] = useState<Profile>(initialProfile);
+  const [chatbotProfile, setChatbotProfile] = useState<ChatbotProfile | null>(null);
   const [chatbotEnabled, setChatbotEnabled] = useState(true);
   const [trialInfo, setTrialInfo] = useState<TrialInfo>({ isActive: false, daysLeft: null });
   const [userRole, setUserRole] = useState<UserRole>(UserRole.CLIENT);
   const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
-  const [seoConfig, setSeoConfig] = useState<SeoConfig>({
-    title: '@elazart | Личная страница',
-    description: 'Добро пожаловать на мою личную страницу! Здесь вы найдете все мои проекты, ссылки и продукты.',
-    keywords: ['личная страница', 'портфолио', 'проекты', 'elazart'],
-  });
-  const [isPublicView, setIsPublicView] = useState(false);
+  const [seoConfig, setSeoConfig] = useState<SeoConfig>(initialSeoConfig);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const pageStateRef = useRef<PageData>();
-  useEffect(() => {
-    pageStateRef.current = {
-      profile,
-      blocks,
-      chatbotProfile,
-      chatbotEnabled,
-      seoConfig
+
+  const setPageData = (data: PageData | null) => {
+    const pData = data || { 
+        profile: initialProfile, 
+        blocks: initialBlocks, 
+        seoConfig: initialSeoConfig, 
+        chatbotProfile: {
+            type: 'person',
+            name: 'Elazart',
+            details: 'Frontend-разработчик и создатель цифровых продуктов.',
+            additionalInfo: 'Я автор книги "Искусство кода".',
+        }, 
+        chatbotEnabled: true 
     };
-  });
+    
+    const loadedProfile = pData.profile;
+    if (!loadedProfile.handle) {
+      loadedProfile.handle = sanitizeHandle(loadedProfile.username);
+    }
+    setProfile(loadedProfile);
+    setBlocks(pData.blocks);
+    setChatbotProfile(pData.chatbotProfile);
+    setChatbotEnabled(pData.chatbotEnabled);
+    setSeoConfig(pData.seoConfig);
+    document.title = pData.seoConfig.title || 'Bio Page';
+  };
+
+  const loadFromLocalStorage = (uid: string) => {
+    const savedData = localStorage.getItem(`linkmax-pageData-${uid}`);
+    if (savedData) {
+        setPageData(JSON.parse(savedData));
+    } else {
+        setPageData(null); 
+    }
+  };
 
   useEffect(() => {
-    // Logic for 7-day premium trial
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareData = urlParams.get('data');
+
+    let localUserId = localStorage.getItem('linkmax-userId');
+    if (!localUserId) {
+        localUserId = `local-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+        localStorage.setItem('linkmax-userId', localUserId);
+    }
+    setUserId(localUserId);
+
+    if (shareData) {
+        try {
+            const decompressedString = decompressFromBase64(shareData);
+            if (decompressedString) {
+                const data = JSON.parse(decompressedString);
+                if (data.profile && data.blocks && data.seoConfig) {
+                    setPageData(data as PageData);
+                    setViewMode('preview'); // Set to preview mode when loading shared data
+                } else {
+                    loadFromLocalStorage(localUserId);
+                }
+            } else {
+                 loadFromLocalStorage(localUserId);
+            }
+        } catch (e) {
+            console.error("Failed to parse shared data, loading local data.", e);
+            loadFromLocalStorage(localUserId);
+        }
+    } else {
+        loadFromLocalStorage(localUserId);
+    }
+
+    setIsLoading(false);
+  }, []);
+  
+  const debouncedSave = useRef(
+    debounce((uid: string, data: PageData) => {
+      localStorage.setItem(`linkmax-pageData-${uid}`, JSON.stringify(data));
+    }, 1000)
+  ).current;
+
+  useEffect(() => {
+    if (userId) {
+        debouncedSave(userId, { profile, blocks, chatbotProfile, chatbotEnabled, seoConfig });
+    }
+  }, [profile, blocks, chatbotProfile, chatbotEnabled, seoConfig, userId, debouncedSave]);
+
+  useEffect(() => {
     const REGISTRATION_DATE_KEY = 'userRegistrationDate';
     let regDateString = localStorage.getItem(REGISTRATION_DATE_KEY);
 
@@ -141,69 +229,6 @@ const App: React.FC = () => {
     } else {
         setTrialInfo({ isActive: false, daysLeft: 0 });
     }
-
-    // Logic for loading shared pages or from local storage
-    let loadedFromUrl = false;
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const dataParam = urlParams.get('data');
-
-      // FIX: Ensure dataParam is not null before calling decompressFromBase64 to prevent potential errors.
-      if (dataParam) {
-        // FIX: Expected 1 arguments, but got 0.
-        const jsonString = decompressFromBase64(dataParam);
-        if (jsonString) {
-          const pageData: PageData = JSON.parse(jsonString);
-          if (pageData.profile && pageData.blocks && pageData.seoConfig) {
-            const loadedProfile = pageData.profile;
-            if (!loadedProfile.handle) {
-              loadedProfile.handle = sanitizeHandle(loadedProfile.username);
-            }
-            setProfile(loadedProfile);
-            setBlocks(pageData.blocks);
-            setChatbotProfile(pageData.chatbotProfile);
-            setChatbotEnabled(pageData.chatbotEnabled);
-            setSeoConfig(pageData.seoConfig);
-            setIsPublicView(true);
-            loadedFromUrl = true;
-            document.title = pageData.seoConfig.title || 'Bio Page';
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load page data from URL:", error);
-    }
-
-    if (!loadedFromUrl) {
-        try {
-            const savedDataString = localStorage.getItem('linkmax_autosave_data');
-            if (savedDataString) {
-                const pageData: PageData = JSON.parse(savedDataString);
-                if (pageData.profile && pageData.blocks && pageData.seoConfig) {
-                    const loadedProfile = pageData.profile;
-                    if (!loadedProfile.handle) {
-                        loadedProfile.handle = sanitizeHandle(loadedProfile.username);
-                    }
-                    setProfile(loadedProfile);
-                    setBlocks(pageData.blocks);
-                    setChatbotProfile(pageData.chatbotProfile);
-                    setChatbotEnabled(pageData.chatbotEnabled);
-                    setSeoConfig(pageData.seoConfig);
-                }
-            }
-        } catch(error) {
-            console.error("Failed to load page data from localStorage:", error);
-            localStorage.removeItem('linkmax_autosave_data');
-        }
-    }
-
-    const intervalId = setInterval(() => {
-        if (!loadedFromUrl && pageStateRef.current) {
-            localStorage.setItem('linkmax_autosave_data', JSON.stringify(pageStateRef.current));
-        }
-    }, 5 * 60 * 1000); // 5 minutes
-
-    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -277,35 +302,19 @@ const App: React.FC = () => {
         return block;
     }));
   };
-
+  
   const importPageData = (data: PageData): boolean => {
     if (data.profile && data.blocks && data.seoConfig) {
-      const importedProfile = data.profile;
-      if (!importedProfile.handle) {
-          importedProfile.handle = sanitizeHandle(importedProfile.username);
-      }
-      setProfile(importedProfile);
-      setBlocks(data.blocks);
-      setChatbotProfile(data.chatbotProfile);
-      setChatbotEnabled(data.chatbotEnabled);
-      setSeoConfig(data.seoConfig);
+      setPageData(data);
       return true;
     }
     return false;
   };
-
-  if (isPublicView) {
+  
+  if (isLoading) {
     return (
-        <div className="min-h-screen bg-gray-900 text-white flex">
-            <div className="w-full">
-                <PreviewPanel 
-                    profile={profile} 
-                    blocks={blocks} 
-                    chatbotProfile={chatbotProfile} 
-                    chatbotEnabled={chatbotEnabled}
-                    onLinkClick={handleLinkClick}
-                />
-            </div>
+        <div className="w-full h-screen flex items-center justify-center bg-gray-900">
+            <div className="text-white text-lg">Загрузка...</div>
         </div>
     );
   }

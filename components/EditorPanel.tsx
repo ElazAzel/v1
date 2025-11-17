@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Block, BlockType, LinkBlock, ShopBlock, Product, ChatbotProfile, UserRole, SearchBlock, SeoConfig, Profile, SocialsBlock, SocialPlatform, SocialLink, TextBlock, ImageBlock, VideoBlock, ButtonBlock, ImageCarouselBlock, CarouselImage, BaseBlock } from '../types';
 import { TrashIcon, LinkIcon, ShoppingCartIcon, WandSparklesIcon, BotIcon, LockIcon, SearchIcon, BarChartIcon, ChevronDownIcon, GripVerticalIcon, TagsIcon, SettingsIcon, PlusIcon, GlobeIcon, TwitterIcon, InstagramIcon, GithubIcon, TelegramIcon, LinkedinIcon, TypeIcon, ImageIcon, VideoIcon, MousePointerClickIcon, GalleryHorizontalIcon, UploadCloudIcon, DownloadCloudIcon, Share2Icon, GiftIcon, FacebookIcon, TiktokIcon, YoutubeIcon, ThreadsIcon, EyeIcon } from './Icons';
@@ -66,7 +60,6 @@ const animatedAvatarFrames = [
 const RenderAvatarFrame: React.FC<{ frameId: string }> = ({ frameId }) => {
     const frameProps = {
         className: "absolute inset-0 w-full h-full pointer-events-none",
-        // FIX: Changed 'aria-hidden' value to boolean to match 'Booleanish' type
         'aria-hidden': true
     };
 
@@ -87,7 +80,6 @@ const RenderAvatarFrame: React.FC<{ frameId: string }> = ({ frameId }) => {
                     <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="50" cy="50" r="48" stroke="url(#chroma-gradient-editor)" strokeWidth="4" />
                         <defs>
-                            {/* FIX: Use React.createElement for non-standard SVG element to avoid TypeScript error. */}
                             {React.createElement('conicGradient', { id: 'chroma-gradient-editor', from: '0deg', at: '50% 50%' },
                                 <React.Fragment key="stops">
                                     <stop offset="0%" stopColor="#818cf8"/>
@@ -852,7 +844,6 @@ const DropZone: React.FC<DropZoneProps> = ({ onDrop, acceptedMimeTypes, children
         setIsDraggingOver(false);
         const files = e.dataTransfer.files;
         if (files && files.length > 0) {
-            // FIX: Explicitly cast Array.from(files) to File[] to address incorrect type inference from FileList.
             const acceptedFiles = (Array.from(files) as File[]).filter(file => 
                 acceptedMimeTypes.some(type => file.type.startsWith(type))
             );
@@ -903,6 +894,8 @@ interface ImageBlockEditorProps {
     updateBlock: (id: string, updates: Partial<ImageBlock>) => void;
 }
 const ImageBlockEditor: React.FC<ImageBlockEditorProps> = ({ block, updateBlock }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const handleImageDrop = (files: FileList) => {
         if (files.length === 0) return;
         const file = files[0];
@@ -913,22 +906,47 @@ const ImageBlockEditor: React.FC<ImageBlockEditorProps> = ({ block, updateBlock 
         reader.readAsDataURL(file);
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            handleImageDrop(e.target.files);
+        }
+    };
+
     return (
         <div>
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*"
+            />
             <div className="space-y-3">
                 <DropZone onDrop={handleImageDrop} acceptedMimeTypes={['image/']}>
                     {block.url ? (
                         <img src={block.url} alt="Загружено" className="max-h-40 mx-auto rounded-md" />
                     ) : (
-                        <div className="text-gray-400">
-                            <ImageIcon className="w-10 h-10 mx-auto mb-2" />
-                            <p>Перетащите изображение сюда или введите URL ниже.</p>
+                        <div className="text-gray-400 flex flex-col items-center justify-center space-y-2">
+                            <ImageIcon className="w-10 h-10" />
+                            <p className="text-sm">Перетащите изображение сюда</p>
                         </div>
                     )}
                 </DropZone>
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-md text-sm"
+                >
+                    <UploadCloudIcon className="w-5 h-5" />
+                    Загрузить файл
+                </button>
+                <div className="relative flex py-2 items-center">
+                    <div className="flex-grow border-t border-gray-600"></div>
+                    <span className="flex-shrink mx-4 text-gray-400 text-xs">ИЛИ</span>
+                    <div className="flex-grow border-t border-gray-600"></div>
+                </div>
                 <input
                     type="text"
-                    placeholder="URL изображения"
+                    placeholder="Вставьте URL изображения"
                     value={block.url}
                     onChange={(e) => updateBlock(block.id, { url: e.target.value })}
                     className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
@@ -1115,6 +1133,8 @@ interface ImageCarouselBlockEditorProps {
     updateBlock: (id: string, updates: Partial<ImageCarouselBlock>) => void;
 }
 const ImageCarouselBlockEditor: React.FC<ImageCarouselBlockEditorProps> = ({ block, updateBlock }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const handleImageDrop = (files: FileList) => {
         const filePromises = Array.from(files).map(file => {
             return new Promise<CarouselImage>((resolve, reject) => {
@@ -1136,6 +1156,12 @@ const ImageCarouselBlockEditor: React.FC<ImageCarouselBlockEditorProps> = ({ blo
         });
     };
     
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            handleImageDrop(e.target.files);
+        }
+    };
+    
     const removeImage = (imageId: string) => {
         updateBlock(block.id, { images: block.images.filter(img => img.id !== imageId) });
     };
@@ -1152,14 +1178,36 @@ const ImageCarouselBlockEditor: React.FC<ImageCarouselBlockEditorProps> = ({ blo
 
     return (
         <div>
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*"
+                multiple
+            />
             <div className="space-y-4">
                 <DropZone onDrop={handleImageDrop} acceptedMimeTypes={['image/']}>
-                    <div className="text-gray-400">
-                        <ImageIcon className="w-10 h-10 mx-auto mb-2" />
-                        <p>Перетащите одно или несколько изображений сюда.</p>
+                    <div className="text-gray-400 flex flex-col items-center justify-center space-y-2">
+                        <ImageIcon className="w-10 h-10" />
+                        <p className="text-sm">Перетащите изображения сюда</p>
                     </div>
                 </DropZone>
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-md text-sm"
+                >
+                    <UploadCloudIcon className="w-5 h-5" />
+                    Загрузить файлы
+                </button>
                 <div className="space-y-3">
+                    {block.images.length > 0 && (
+                         <div className="relative flex py-1 items-center">
+                            <div className="flex-grow border-t border-gray-600"></div>
+                            <span className="flex-shrink mx-4 text-gray-400 text-xs uppercase">Загруженные изображения</span>
+                            <div className="flex-grow border-t border-gray-600"></div>
+                        </div>
+                    )}
                     {block.images.map(image => (
                         <div key={image.id} className="flex items-center gap-2 bg-gray-900 p-2 rounded-md">
                             <img src={image.url} alt="thumbnail" className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
@@ -1397,24 +1445,27 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         setImportData(null);
     };
 
-    const generatePageUrl = () => {
+    const generateShareUrl = () => {
         const pageData = { profile, blocks, chatbotProfile, chatbotEnabled, seoConfig };
         const jsonString = JSON.stringify(pageData);
         const compressedData = compressToBase64(jsonString);
-        const handle = profile.handle;
+        
         const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set('data', compressedData);
-        url.hash = `/p/${handle}`;
         return url.toString();
-    }
+    };
 
     const handlePreview = () => {
-        const url = generatePageUrl();
-        window.open(url, '_blank');
+        const url = generateShareUrl();
+        if (url) window.open(url, '_blank');
     };
 
     const handleShare = () => {
-        const url = generatePageUrl();
+        const url = generateShareUrl();
+        if (!url) {
+            setNotification("Не удалось сгенерировать ссылку.");
+            return;
+        }
         setShareUrl(url);
         setIsLinkCopied(false);
         setIsShareModalOpen(true);
@@ -1598,8 +1649,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
             role="dialog"
         >
             <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-full max-w-lg">
-                <h3 className="text-lg font-bold text-white mb-2">Ваша публичная ссылка (только просмотр)</h3>
-                <p className="text-gray-400 mb-4 text-sm">Используйте эту ссылку для публикации в социальных сетях. Посетители увидят вашу страницу, но не смогут ее редактировать.</p>
+                <h3 className="text-lg font-bold text-white mb-2">Ваша публичная ссылка</h3>
+                <p className="text-gray-400 mb-4 text-sm">Используйте эту ссылку для публикации. Она содержит все данные вашей страницы. Посетители увидят копию вашей страницы.</p>
                 <div className="flex items-center bg-gray-900 rounded-md p-1 border border-gray-600">
                     <input type="text" readOnly value={shareUrl} className="flex-1 bg-transparent px-3 py-1 text-gray-300 text-sm focus:outline-none"/>
                     <button 
